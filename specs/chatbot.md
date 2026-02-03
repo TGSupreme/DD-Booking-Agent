@@ -1,39 +1,65 @@
-# QuickBus AI Chatbot Module (Read-Only Assistant)
+# QuickBus AI Chatbot Module (Read-Only Information Assistant)
 
-## Overview
+---
 
-QuickBus AI Chatbot is a **read-only conversational assistant** for the QuickBus system.
+# Overview
 
-It helps users **retrieve information** using natural language.
+QuickBus AI Chatbot is a **read-only conversational assistant** for the QuickBus Bus Booking System.
 
-The Chatbot can:
+It allows users to retrieve **bus and route information using natural language**.
 
-- search buses
-- check routes
-- view timings
-- check seat availability
-- view ticket status
-- answer general queries
+The chatbot only:
+- fetches information
+- calls backend GET/READ APIs
+- formats answers
 
-It NEVER performs actions like booking or cancelling.
+The chatbot NEVER:
+- books tickets
+- cancels tickets
+- modifies data
+- updates database records
+
+It behaves strictly as an **information retrieval layer**.
+
+---
+
+# Final Scope (Locked)
+
+The chatbot supports ONLY:
+
+✅ Search buses  
+✅ View routes  
+✅ View timings  
+✅ Check seat availability  
+✅ View prices  
+✅ Show available stops/locations  
+✅ General Q&A  
+
+The chatbot DOES NOT support:
+
+❌ Ticket booking  
+❌ Ticket cancellation  
+❌ Ticket status  
+❌ Payment  
+❌ Any POST/PUT/DELETE business actions  
 
 ---
 
 # Goal
 
-Enable users to ask questions like:
+Users should be able to ask:
 
-"Show buses from Surat to Ahmedabad"  
-"What time does the 7 AM bus arrive?"  
-"Are seats available tomorrow?"  
-"Check my ticket status"
+• "Show buses from Surat to Ahmedabad"  
+• "Are seats available tomorrow?"  
+• "What time does this bus arrive?"  
+• "List all stops"  
+• "Cheapest bus for today"  
 
-The Chatbot should:
-
-1. Understand the question
+System must:
+1. Understand intent
 2. Extract parameters
-3. Call backend GET APIs
-4. Return formatted answers
+3. Call backend APIs
+4. Return clean formatted answers
 
 ---
 
@@ -43,80 +69,77 @@ LLM → reasoning only
 Chatbot → orchestration only  
 Backend → data provider only  
 
-Chatbot behaves like a **smart information retriever**.
-
-It does NOT modify any data.
+The chatbot NEVER contains business logic.
 
 ---
 
 # Final Architecture
 
-```
 Streamlit (UI)
       ↓
-AI Chatbot Server (Flask + LangChain + Gemini)
+Chatbot Server (Flask + LangChain + Gemini)
       ↓
-Backend APIs (GET only)
-```
+Backend APIs (Read-only)
+      ↓
+Database
 
 ---
 
 # Responsibilities
 
-## 1. Streamlit (Frontend – Permanent UI)
+---
+
+## 1. Streamlit (Frontend)
 
 Responsibilities:
 - send user messages
-- display chatbot replies
-- show search results
+- display chatbot responses
+- show tables/cards
 
 Rules:
+- no API logic
 - no business logic
-- no DB calls
-- no direct API logic
+- no database calls
 
-Only handles UI rendering.
+UI only.
 
 ---
 
-## 2. AI Chatbot Server (Your Work Area)
+## 2. AI Chatbot Server (Main Work Area)
 
 Acts as:
 Intelligence + routing layer
 
 Responsibilities:
-- receive user messages
+- receive messages
 - call Gemini LLM
-- detect user intent
-- extract parameters (source, destination, date, etc.)
-- choose correct API wrapper
-- call backend GET APIs
-- format readable responses
+- detect intent
+- extract parameters
+- select correct tool
+- call backend API
+- format responses
 
 Never:
-- access database
+- access DB
 - modify data
-- perform bookings
-- cancel tickets
-- update records
-
-Chatbot is strictly read-only.
+- perform calculations
+- execute business logic
 
 ---
 
 ## 3. Backend (Black Box)
 
 Acts as:
-Data provider
+Single source of truth
 
-Chatbot only:
-- sends GET requests
-- receives data
+Chatbot:
+- sends requests
+- receives JSON
 
 Chatbot MUST NOT depend on backend internals.
 
 Treat backend as:
-Input → Output API system only.
+Input → Output only.
 
 ---
 
@@ -124,12 +147,12 @@ Input → Output API system only.
 
 1. Chatbot NEVER accesses DB
 2. Chatbot NEVER contains business logic
-3. Chatbot ONLY calls GET APIs
+3. Chatbot ONLY calls backend APIs
 4. Chatbot NEVER modifies data
 5. LLM NEVER executes code
 6. LLM ONLY returns reasoning/text
 7. All models run via cloud APIs only
-8. Backend is the single source of truth
+8. Backend is the only truth
 
 If any rule breaks → architecture is wrong
 
@@ -137,26 +160,24 @@ If any rule breaks → architecture is wrong
 
 # Tech Stack
 
-## Frontend
+Frontend:
 - Streamlit
 
-## Chatbot Server
-- Python 3.10
+Chatbot Server:
+- Python 3.10+
 - Flask
 - LangChain
 - langchain-google-genai
-- requests / httpx
+- requests/httpx
 
-## LLM Provider
-- Google Gemini API (hosted)
+LLM Provider:
+- Google Gemini (hosted)
 
 ---
 
-# LLM Configuration (Official Setup)
+# LLM Configuration
 
-We use Gemini through LangChain.
-
-## services/llm.py
+services/llm.py
 
 ```python
 import os
@@ -166,97 +187,204 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 load_dotenv()
 
 def get_llm():
-
-    chat_model = ChatGoogleGenerativeAI(
+    return ChatGoogleGenerativeAI(
         model="gemini-2.5-flash-lite",
         temperature=0.3
     )
 
-    return chat_model
-```
+# Backend APIs (Official Contracts)
+
+These are the ONLY APIs the chatbot is allowed to use.
+
+Rules:
+- Chatbot calls backend only through these APIs
+- No direct DB access
+- No hidden endpoints
+- No internal logic usage
+- Backend is treated as a black box
 
 ---
 
-# Calling the LLM
+## 1. Login
 
-```python
-from langchain_core.messages import HumanMessage
+Name: login  
+Method: POST  
+URL: /api/login  
 
-response = llm.invoke([
-    HumanMessage(content="Show buses from Surat to Ahmedabad")
-])
+Purpose:
+Authenticate user credentials and create a secure session using JWT stored in an HTTP-only cookie.
 
-print(response.content)
-```
+Query Params:
+None
 
-Always pass message objects.  
-Do NOT pass plain strings.
+Body:
+{
+  email: string (valid email),
+  password: string (6+ characters recommended)
+}
+
+Response:
+{
+  success: boolean,
+  message: string,
+  user: {
+    id: string,
+    name: string,
+    email: string,
+    phone: number,
+    role: user | admin
+  }
+}
+
+Cookies Set:
+- accesstoken (JWT, HttpOnly, SameSite=Lax, Max-Age=86400)
+
+Notes:
+- Only used if backend requires authentication
+- Chatbot never stores passwords
+- Authentication handled automatically via cookies
 
 ---
 
-# Chatbot Workflow
+## 2. Get All Stops
 
-For every message:
+Name: get_all_stops  
+Method: GET  
+URL: /api/admin/route/stops  
 
-Step 1 → Receive user query  
-Step 2 → Send to LLM  
-Step 3 → Detect intent  
-Step 4 → Extract parameters  
-Step 5 → Choose GET tool  
-Step 6 → Call backend API  
-Step 7 → Return formatted answer  
+Purpose:
+Fetch all available bus stops/locations configured in the system.
 
-Flow:
+Query Params:
+None
 
-```
-User
- ↓
-LLM reasoning
- ↓
-Tool selection (GET only)
- ↓
-Backend API call
- ↓
-Information response
-```
+Body:
+None
+
+Response:
+{
+  success: boolean,
+  message: string,
+  allstops: string[]
+}
+
+Used for:
+- "Show all stops"
+- autocomplete suggestions
+- validating source/destination
+
+---
+
+## 3. Search Bus
+
+Name: search_bus  
+Method: POST  
+URL: /api/user/search  
+
+Purpose:
+Search available buses for a given source, destination, and travel date.
+
+Query Params:
+None
+
+Body:
+{
+  from: string,
+  to: string,
+  traveldate: YYYY-MM-DD
+}
+
+Response:
+{
+  success: boolean,
+  message: string,
+  buses: [
+    {
+      busId: string,
+      tripId: string,
+      busname: string,
+      busnumber: string,
+      type: sleeper | seating,
+      from: string,
+      to: string,
+      totaltime: {
+        hour: number,
+        minute: number
+      },
+      totalseats: number,
+      price: number,
+      fromtime: string,
+      totime: string,
+      days: number[],
+      availableseat: number,
+      amenties: string[]
+    }
+  ]
+}
+
+Used for:
+- searching buses
+- checking timings
+- seat availability
+- pricing info
+- amenities
+- travel duration
+
+This is the PRIMARY chatbot API.
 
 ---
 
 # Tools Design (Critical)
 
-Each tool = exactly one backend GET API wrapper.
+Each tool MUST map 1-to-1 with exactly one backend API.
 
-Tools MUST:
-- only make GET requests
-- contain zero business logic
-- return raw backend response
+Definition:
+1 tool = 1 API wrapper
+
+Tools must:
+- only call backend
+- return raw JSON
+- contain ZERO business logic
+
+Tools must NOT:
+- validate data
+- transform results heavily
+- calculate anything
+- modify state
+- call POST/PUT/DELETE business endpoints
 
 ---
 
-## Example Tools
+## Tool List (Final)
 
 ```
-search_buses()
-get_timings()
-check_availability()
-get_ticket_status()
+login()
+get_all_stops()
+search_bus()
 ```
 
-Example structure:
+These are the ONLY tools allowed.
+
+No extra tools should exist.
+
+---
+
+## Example Tool Implementation
 
 ```python
-def search_buses(params):
-    response = requests.get(BACKEND_URL + "/routes", params=params)
+import requests
+
+BACKEND_URL = "http://localhost:2026"
+
+def search_bus(params):
+    response = requests.post(
+        f"{BACKEND_URL}/api/user/search",
+        json=params
+    )
     return response.json()
 ```
 
-Nothing else should exist inside tools.
-
-No:
-- validation
-- calculations
-- data modification
-- POST/PUT/DELETE calls
+Keep tools extremely thin.
 
 ---
 
@@ -264,53 +392,85 @@ No:
 
 Examples:
 
-| User Message | Tool |
-|-------------|-------|
-| show buses | search_buses |
-| timings | get_timings |
-| seats available | check_availability |
-| ticket status | get_ticket_status |
+User: "Show buses from Surat to Ahmedabad"  
+→ search_bus
 
-Chatbot only fetches and displays data.
+User: "Are seats available tomorrow?"  
+→ search_bus
+
+User: "List all stops"  
+→ get_all_stops
+
+User: "Login me"  
+→ login
+
+All informational queries must resolve using only these tools.
+
+---
+
+# Chatbot Workflow
+
+For every user message:
+
+Step 1 → Receive query  
+Step 2 → Send to LLM for reasoning  
+Step 3 → Detect intent  
+Step 4 → Extract parameters  
+Step 5 → Select tool  
+Step 6 → Call backend API  
+Step 7 → Format response  
+
+Flow:
+
+User  
+↓  
+LLM reasoning  
+↓  
+Tool call  
+↓  
+Backend  
+↓  
+Formatted answer  
 
 ---
 
 # Memory Design
 
-Each user has one session:
+Use simple session memory only.
 
-```
+Structure:
+
 session = {
   history: [],
   state: {}
 }
-```
 
-history → conversation  
-state → temporary info (route, date, etc.)
+history:
+- stores conversation
+
+state:
+- temporary parameters (from, to, date)
 
 Purpose:
 - follow-up questions
 - context awareness
 
-Storage:
-- in-memory dict or Redis
-
 Not required:
-- vector DB
+- vector database
 - embeddings
 - RAG
 
-Keep simple.
+Keep it simple.
 
 ---
 
 # What Chatbot MUST Do
 
-✅ Answer informational queries  
+✅ Understand intent  
 ✅ Extract parameters  
-✅ Call GET APIs  
-✅ Format results clearly  
+✅ Call correct tool  
+✅ Fetch backend data  
+✅ Format answers clearly  
 
 ---
 
@@ -318,33 +478,38 @@ Keep simple.
 
 ❌ Book tickets  
 ❌ Cancel tickets  
-❌ Modify trips  
-❌ Update database  
-❌ Execute POST/PUT/DELETE  
-❌ Contain business logic  
+❌ Modify database  
 ❌ Perform calculations  
+❌ Execute business logic  
+❌ Access DB directly  
+❌ Call unauthorized APIs  
 
-If Chatbot performs any action → design is wrong
+If any of these happen → architecture is violated.
 
 ---
 
 # Mental Model
 
-Streamlit → interaction  
+Streamlit → UI  
 Chatbot → thinking + routing  
-Backend → data provider  
+Backend → data source  
 Database → storage  
-Gemini → reasoning only  
+Gemini → reasoning engine  
+
+Chatbot = smart information retriever only
 
 ---
 
-# Summary
+# Final Summary
 
-Chatbot = read-only assistant  
-Backend = data source  
-Gemini = reasoning engine  
-Tools = GET API wrappers only  
+QuickBus AI Chatbot is:
 
-The Chatbot is simply a **smart information retrieval layer** for the system.
+✔ Read-only  
+✔ Tool-calling  
+✔ Stateless  
+✔ API-driven  
+✔ Information assistant only  
 
-This architecture is fixed and must not change.
+It never performs actions.
+
+Architecture is fixed and must not change.

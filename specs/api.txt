@@ -1,0 +1,233 @@
+BUS BOOKING API DOCUMENTATION
+============================
+
+Base URL:
+/api
+
+
+------------------------------------------------------------
+1. LOGIN
+------------------------------------------------------------
+Name: login
+Method: POST
+URL: /api/login
+
+Purpose:
+Authenticate user credentials and create a secure session using a JWT access token stored in an HTTP-only cookie.
+
+Query Params:
+None
+
+Body:
+{
+  email: string (valid email format)
+  password: string (min 6+ characters recommended)
+}
+
+Response:
+{
+  success: boolean
+  message: string
+  user: {
+    id: string (MongoDB ObjectId)
+    name: string
+    email: string
+    phone: number
+    role: user | admin
+  }
+}
+
+Cookies Set:
+- accesstoken (JWT, HttpOnly, SameSite=Lax, Max-Age=86400, Path=/)
+
+
+
+------------------------------------------------------------
+2. GET ALL STOPS
+------------------------------------------------------------
+Name: get_all_stops
+Method: GET
+URL: /api/admin/route/stops
+
+Purpose:
+Fetch all available bus stops/locations configured in the system.
+
+Query Params: None
+Body: None
+
+Response:
+{
+  success: boolean
+  message: string
+  allstops: string[]
+}
+
+
+
+------------------------------------------------------------
+3. SEARCH BUSES
+------------------------------------------------------------
+Name: search_bus
+Method: POST
+URL: /api/user/search
+
+Purpose:
+Search available buses for a given source, destination, and travel date.
+
+Query Params: None
+
+Body:
+{
+  from: string
+  to: string
+  traveldate: YYYY-MM-DD
+}
+
+Response:
+{
+  success: boolean
+  message: string
+  buses: [
+    {
+      busId: string
+      tripId: string
+      busname: string
+      busnumber: string
+      type: sleeper | seating
+      from: string
+      to: string
+      totaltime: { hour, minute }
+      totalseats: number
+      price: number
+      fromtime: hh:mm AM/PM
+      totime: hh:mm AM/PM
+      days: number[]
+      availableseat: number
+      amenties: string[]
+    }
+  ]
+}
+
+
+
+------------------------------------------------------------
+4. GET SEATS
+------------------------------------------------------------
+Name: get_all_seats
+Method: POST
+URL: /api/ticket/seat/get
+
+Purpose:
+Fetch all already booked seat numbers for a specific trip and travel date.
+
+Query Params: None
+
+Body:
+{
+  tripId: string
+  from: string
+  to: string
+  traveldate: YYYY-MM-DD
+}
+
+Response:
+{
+  success: boolean
+  message: string
+  bookedseat: number[]
+}
+
+
+
+------------------------------------------------------------
+5. CREATE TICKET
+------------------------------------------------------------
+Name: create_ticket
+Method: POST
+URL: /api/ticket/
+
+Purpose:
+Create a new ticket booking for a trip with selected seats and passenger details.
+
+Query Params: None
+
+Body:
+{
+  tripId: string
+  from: string
+  to: string
+  price: number
+  seats: number[]
+  passengers: [
+    { name, age, gender }
+  ]
+  ticketdate: YYYY-MM-DD
+}
+
+Response:
+{
+  success: boolean
+  message: string
+  ticket: {
+    user: string
+    trip: string
+    pnr: string
+    from: string
+    to: string
+    seats: number[]
+    passengers: [...]
+    ticketdate: YYYY-MM-DD
+    status: booked | cancelled
+    totalamount: number
+    paymentstatus: pending | paid | failed
+    createdAt: ISO datetime
+    updatedAt: ISO datetime
+  }
+}
+
+
+
+------------------------------------------------------------
+6. COMPLETE BOOKING PAYMENT
+------------------------------------------------------------
+Name: complete_ticket_payment
+Method: PUT
+URL: /api/ticket/update/payment/:ticketId
+
+Purpose:
+Mark a ticket’s payment as completed and update its payment status.
+
+Path Params:
+ticketId: string
+
+Body:
+{
+  price: number
+}
+
+Response:
+{
+  success: boolean
+  message: string
+  updatedTicket: {
+    _id: string
+    user: string
+    trip: string
+    pnr: string
+    from: string
+    to: string
+    seats: number[]
+    passengers: [...]
+    ticketdate: YYYY-MM-DD
+    status: booked | cancelled
+    totalamount: number
+    paymentstatus: completed | pending | failed
+    createdAt: ISO datetime
+    updatedAt: ISO datetime
+  }
+}
+
+
+============================
+END OF DOCUMENTATION
+============================

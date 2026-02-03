@@ -1,213 +1,195 @@
 # QuickBus AI Agent Module (Action Executor)
 
-## Overview
+=====================================================
+SCOPE-LIMITED VERSION (STRICTLY BASED ON AVAILABLE APIs)
+=====================================================
+
+This specification defines the FINAL and FIXED scope of the QuickBus AI Agent.
+
+The Agent ONLY performs actions that are supported by existing backend APIs.
+
+If a backend API does not exist → the Agent MUST NOT support that feature.
+
+-----------------------------------------------------
+
+# Overview
 
 QuickBus AI Agent is the **action execution layer** of the QuickBus system.
 
-It allows users to perform **real operations using natural language**, such as:
+It converts natural language into backend API calls.
 
-- booking tickets
-- cancelling tickets
-- updating trips
-- managing reservations
+The Agent:
+- understands user intent
+- extracts parameters
+- selects the correct tool
+- calls backend APIs
+- returns formatted responses
 
-The Agent converts user messages into **backend API calls**.
+The Agent NEVER:
+- accesses database
+- implements business logic
+- validates tickets
+- performs calculations
 
-It does NOT contain any business logic or database access.
+It is strictly an orchestration layer.
 
----
+-----------------------------------------------------
 
-# Goal
+# Supported Features (FINAL)
 
-Enable users to perform actions like:
+The Agent supports ONLY these actions:
 
-"Book 2 seats from Surat to Ahmedabad tomorrow"  
-"Cancel my ticket"  
-"Reschedule my booking to Friday"
+1. Login user
+2. View available stops
+3. Search buses
+4. View booked/available seats
+5. Create ticket booking
+6. Complete payment
 
-The Agent should:
+NOT supported:
+❌ Cancel ticket
+❌ Reschedule ticket
+❌ Ticket status lookup
+❌ Modify booking
+❌ Refunds
+❌ Admin operations
 
-1. Understand intent
-2. Extract parameters
-3. Select correct tool
-4. Call backend API
-5. Return formatted response
+If requested, Agent must reply:
+"This action is not supported yet."
 
----
-
-# Core Principle
-
-LLM → reasoning only  
-Agent → orchestration only  
-Backend → execution only  
-
-Agent behaves like a **smart automated client**.
-
-It NEVER owns business logic.
-
----
+-----------------------------------------------------
 
 # Final Architecture
 
-```
 Streamlit (UI)
       ↓
 AI Agent Server (Flask + LangChain + Gemini)
       ↓
 Backend APIs (HTTP only)
-```
 
----
+-----------------------------------------------------
 
 # Responsibilities
 
-## 1. Streamlit (Frontend – Permanent UI)
+## 1. Frontend — Streamlit
 
 Responsibilities:
-- send user messages
-- display responses
+- send messages
+- show responses
+- display lists (buses/seats/tickets)
 - show confirmations/errors
 
 Rules:
 - no logic
-- no DB calls
-- no direct API logic
+- no API logic
+- no database
 
-Only UI.
+UI only.
 
----
+-----------------------------------------------------
 
-## 2. AI Agent Server (Your Work Area)
+## 2. Agent Server (Core Logic Layer)
 
-Acts as:
-Decision + orchestration layer
+Built using:
+- Python
+- Flask
+- LangChain
+- Google Gemini API
 
 Responsibilities:
-- receive user messages
-- call Gemini LLM
+- receive user message
+- call LLM
 - detect intent
 - extract parameters
-- maintain session state
-- select correct tool
-- call backend APIs
-- format final response
+- select tool
+- call backend API
+- return formatted result
 
 Never:
-- access database
-- write business rules
-- validate bookings
-- calculate prices
-- implement ticket logic
+- business rules
+- DB access
+- price logic
+- seat logic
+- ticket validation
 
-All such logic belongs to backend only.
-
----
+-----------------------------------------------------
 
 ## 3. Backend (Black Box)
 
-Acts as:
-Execution service
+Backend handles:
+- authentication
+- seat availability
+- booking logic
+- pricing
+- payment
+- data storage
 
-Agent only:
-- sends HTTP requests
-- receives responses
+Agent treats backend as:
 
-Agent MUST NOT depend on backend internals.
+Input → Output only
 
-Treat backend as:
-Input → Output API system only.
+-----------------------------------------------------
 
----
-
-# Golden Rules (Strict)
+# Golden Rules (STRICT)
 
 1. Agent NEVER accesses DB
 2. Agent NEVER contains business logic
-3. Agent ONLY calls backend APIs
+3. Agent ONLY calls APIs
 4. LLM NEVER executes code
-5. LLM ONLY returns reasoning/text
-6. All models run via cloud APIs
-7. No local inference
-8. Backend is the single source of truth
+5. Tools = thin HTTP wrappers only
+6. Backend = single source of truth
 
-If any rule is broken → architecture is wrong
+Breaking any rule = wrong architecture
 
----
+-----------------------------------------------------
 
 # Tech Stack
 
-## Frontend
+Frontend:
 - Streamlit
 
-## Agent Server
+Agent Server:
 - Python 3.10
 - Flask
 - LangChain
-- langchain-google-genai
-- requests / httpx
+- requests/httpx
 
-## LLM Provider
-- Google Gemini API (hosted)
+LLM:
+- Google Gemini API (cloud hosted only)
 
----
+-----------------------------------------------------
 
-# LLM Configuration (Official Setup)
+# LLM Configuration
 
-We use Gemini through LangChain.
-
-## services/llm.py
+services/llm.py
 
 ```python
-import os
-from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 
-load_dotenv()
-
 def get_llm():
-
-    chat_model = ChatGoogleGenerativeAI(
+    return ChatGoogleGenerativeAI(
         model="gemini-2.5-flash-lite",
         temperature=0.3
     )
-
-    return chat_model
 ```
 
----
+Always pass message objects (NOT strings).
 
-# Calling the LLM
-
-```python
-from langchain_core.messages import HumanMessage
-
-response = llm.invoke([
-    HumanMessage(content="Book 2 seats tomorrow")
-])
-
-print(response.content)
-```
-
-Always pass message objects.  
-Do NOT pass plain strings.
-
----
+-----------------------------------------------------
 
 # Agent Workflow
 
 For every message:
 
-Step 1 → Receive user message  
-Step 2 → Send to LLM  
-Step 3 → Detect intent  
-Step 4 → Extract parameters  
-Step 5 → Choose tool  
-Step 6 → Call backend API  
-Step 7 → Return result  
+1. Receive message
+2. Send to LLM
+3. Extract intent + parameters (JSON)
+4. Select tool
+5. Call backend API
+6. Return formatted response
 
 Flow:
 
-```
 User
  ↓
 LLM reasoning
@@ -216,71 +198,259 @@ Tool selection
  ↓
 Backend API call
  ↓
-Confirmation message
-```
+Response
 
----
+------------------------------------------------------------
 
-# Tools Design (Critical)
+============================================================
+8. BACKEND API CONTRACTS (AUTHORITATIVE SECTION)
+============================================================
 
-Each tool = exactly one backend API wrapper.
+Base URL:
+`/api`
 
-Tools MUST:
-- only send HTTP requests
-- contain zero business logic
-- return raw backend response
+These definitions MUST be followed exactly.
 
----
+------------------------------------------------------------
+API 1 — LOGIN
+------------------------------------------------------------
 
-## Example Tools
+POST /api/login
 
-```
-book_ticket()
-cancel_ticket()
-update_ticket()
-get_ticket_status()
-```
+Purpose:
+Authenticate user and set JWT cookie.
 
-Example structure:
+Request Body:
+{
+  "email": "user@email.com",
+  "password": "password123"
+}
+
+Response:
+{
+  "success": true,
+  "message": "Login successful",
+  "user": {
+    "id": "string",
+    "name": "string",
+    "email": "string",
+    "phone": number,
+    "role": "user | admin"
+  }
+}
+
+Tool:
+login()
+
+LLM must extract:
+- email
+- password
+
+------------------------------------------------------------
+API 2 — GET ALL STOPS
+------------------------------------------------------------
+
+GET /api/admin/route/stops
+
+Purpose:
+Fetch all bus stops.
+
+Request:
+None
+
+Response:
+{
+  "success": true,
+  "allstops": ["Surat", "Ahmedabad", "Baroda"]
+}
+
+Tool:
+get_all_stops()
+
+LLM must extract:
+None
+
+------------------------------------------------------------
+API 3 — SEARCH BUSES
+------------------------------------------------------------
+
+POST /api/user/search
+
+Purpose:
+Search available buses.
+
+Request Body:
+{
+  "from": "Surat",
+  "to": "Ahmedabad",
+  "traveldate": "2026-02-10"
+}
+
+Response:
+{
+  "success": true,
+  "buses": [
+    {
+      "busId": "string",
+      "tripId": "string",
+      "busname": "Volvo AC",
+      "price": 500,
+      "availableseat": 12,
+      "fromtime": "08:00 AM",
+      "totime": "02:00 PM"
+    }
+  ]
+}
+
+Tool:
+search_bus()
+
+LLM must extract:
+- from
+- to
+- traveldate
+
+------------------------------------------------------------
+API 4 — GET SEATS
+------------------------------------------------------------
+
+POST /api/ticket/seat/get
+
+Purpose:
+Get booked seats for a trip.
+
+Request Body:
+{
+  "tripId": "string",
+  "from": "Surat",
+  "to": "Ahmedabad",
+  "traveldate": "2026-02-10"
+}
+
+Response:
+{
+  "success": true,
+  "bookedseat": [1, 2, 5, 8]
+}
+
+Tool:
+get_all_seats()
+
+LLM must extract:
+- tripId
+- date
+- from
+- to
+
+------------------------------------------------------------
+API 5 — CREATE TICKET
+------------------------------------------------------------
+
+POST /api/ticket/
+
+Purpose:
+Create booking (payment pending).
+
+Request Body:
+{
+  "tripId": "string",
+  "from": "Surat",
+  "to": "Ahmedabad",
+  "price": 500,
+  "seats": [3,4],
+  "passengers": [
+    {"name":"Ahemad","age":22,"gender":"M"}
+  ],
+  "ticketdate": "2026-02-10"
+}
+
+Response:
+{
+  "success": true,
+  "ticket": {
+    "_id": "ticketId",
+    "pnr": "PNR123",
+    "status": "booked",
+    "paymentstatus": "pending"
+  }
+}
+
+Tool:
+create_ticket()
+
+LLM must extract:
+- tripId
+- seats
+- passengers
+- price
+- date
+
+------------------------------------------------------------
+API 6 — COMPLETE PAYMENT
+------------------------------------------------------------
+
+PUT /api/ticket/update/payment/:ticketId
+
+Purpose:
+Mark payment completed.
+
+Request Body:
+{
+  "price": 1000
+}
+
+Response:
+{
+  "success": true,
+  "updatedTicket": {
+    "paymentstatus": "completed"
+  }
+}
+
+Tool:
+complete_ticket_payment()
+
+LLM must extract:
+- ticketId
+- price
+
+------------------------------------------------------------
+
+
+# Tool Design Rules
+
+Each tool:
+- calls exactly one API
+- contains zero logic
+- returns raw JSON
+
+Example:
 
 ```python
-def book_ticket(payload):
-    response = requests.post(BACKEND_URL + "/book", json=payload)
-    return response.json()
+def search_bus(payload):
+    return requests.post(BASE_URL + "/user/search", json=payload).json()
 ```
 
-Nothing else should exist inside tools.
+Nothing else allowed.
 
-No:
-- validation
-- price calculations
-- rules
-- condition logic
-
-Backend handles everything.
-
----
+-----------------------------------------------------
 
 # Intent → Tool Mapping
 
-LLM decides which tool to call.
+| User Intent | Tool |
+|------------|-------------------------|
+| login | login |
+| show stops | get_all_stops |
+| search bus | search_bus |
+| show seats | get_all_seats |
+| book ticket | create_ticket |
+| pay ticket | complete_ticket_payment |
 
-Examples:
-
-| User Message | Tool |
-|------------|-------|
-| book seats | book_ticket |
-| cancel ticket | cancel_ticket |
-| modify trip | update_ticket |
-| check status | get_ticket_status |
-
-Agent only routes requests.
-
----
+-----------------------------------------------------
 
 # Memory Design
 
-Each user has one session:
+Per-user session:
 
 ```
 session = {
@@ -289,64 +459,43 @@ session = {
 }
 ```
 
-history → conversation  
-state → structured info (routeId, seats, dates, etc.)
-
-Purpose:
+Used for:
+- remembering route
+- storing tripId
+- storing seats
 - multi-step booking
-- remembering previous inputs
 
 Storage:
-- in-memory dict or Redis
+- in-memory or Redis only
 
-Not required:
-- vector DB
-- embeddings
-- RAG
+No vector DB / no RAG
 
-Keep simple.
-
----
-
-# What Agent MUST Do
-
-✅ Understand intent  
-✅ Extract entities (date, seats, route, etc.)  
-✅ Call correct tool  
-✅ Format response  
-
----
-
-# What Agent MUST NOT Do
-
-❌ Access database  
-❌ Write business logic  
-❌ Validate rules  
-❌ Store permanent data  
-❌ Perform calculations  
-❌ Execute bookings itself  
-
-If Agent does any of these → design is wrong
-
----
+-----------------------------------------------------
 
 # Mental Model
 
-Streamlit → interaction  
-Agent → thinking + routing  
+Streamlit → UI  
+Agent → reasoning + routing  
 Backend → execution  
 Database → storage  
 Gemini → reasoning only  
 
----
+Agent = smart bridge between language and APIs
 
-# Summary
+-----------------------------------------------------
 
-Agent = action executor  
-Backend = real system  
-Gemini = reasoning engine  
-Tools = API wrappers only  
+# Final Summary
 
-The Agent is simply a **smart bridge between user messages and backend APIs**.
+QuickBus AI Agent is:
 
-This architecture is fixed and must not change.
+- NOT a booking system
+- NOT a business logic layer
+- NOT a database client
+
+It is ONLY:
+
+Natural Language → API Calls
+
+Scope is permanently limited to available APIs.
+
+Future features require backend endpoints first.
