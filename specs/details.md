@@ -4,13 +4,9 @@
 
 QuickBus AI is an **AI assistant layer** built on top of the existing QuickBus Bus Booking System.
 
-It allows users to interact with the system using **natural language** instead of buttons/forms.
+It allows users to interact with the system using **natural language** instead of traditional buttons and forms.
 
-Currently:
-
-- Frontend → Streamlit (temporary UI for development/testing)
-- Backend → Node + Express (already implemented)
-- AI Server → Flask + LangChain + HuggingFace LLM
+Users can chat with the assistant to search buses, check availability, book tickets, and cancel tickets.
 
 ---
 
@@ -37,49 +33,48 @@ Using simple messages like:
 AI handles thinking  
 Backend handles execution  
 
-AI never touches database directly.
+AI NEVER performs business logic or database operations.
+
+AI behaves like a **smart automated client** that only calls APIs.
 
 ---
 
-# Current Architecture
+# Final Architecture
 
 ```
 Streamlit (Frontend UI)
         ↓
-AI Server (Flask + LangChain)
+AI Server (Flask + LangChain + Gemini)
         ↓
-Express Backend (already built)
-        ↓
-MongoDB
+Backend APIs (HTTP only)
 ```
-
-LLM Provider:
-HuggingFace Hosted Models (cloud only)
 
 ---
 
 # Component Responsibilities
 
-## 1. Streamlit (Frontend – temporary)
+## 1. Streamlit (Frontend – Permanent)
 
-Purpose:
-Simple testing UI for AI
+Purpose:  
+Permanent user interface for the system.
 
 Responsibilities:
 - send user messages
 - display AI responses
+- show results (buses, tickets, confirmations)
 
-No business logic  
-No DB calls  
+Rules:
+- No business logic
+- No database calls
+- No direct backend logic
 
-Later:
-Streamlit can be replaced by React frontend.
+Streamlit is the **official production UI** (not temporary).
 
 ---
 
 ## 2. AI Server (Python + Flask + LangChain)
 
-Acts as:
+Acts as:  
 Intelligence + orchestration layer
 
 Responsibilities:
@@ -92,33 +87,29 @@ Responsibilities:
 
 Never:
 - access database
-- store business logic
-- execute bookings directly
+- implement business rules
+- perform bookings directly
 
 Think of it as:
 Smart automated client
 
 ---
 
-## 3. Backend (Node + Express)
-
-Status:
-Already implemented
+## 3. Backend (Black Box)
 
 Acts as:
-Execution layer (single source of truth)
+Execution layer
 
 Responsibilities:
-- booking
-- cancellation
-- validations
-- authentication
-- DB queries
-- all business rules
+- process all requests
+- handle validations
+- manage authentication
+- perform bookings/cancellations
+- store and retrieve data
 
-All real operations happen here.
-
-AI only sends HTTP requests to this backend.
+Important:
+AI server **must not know or depend on backend internals**.  
+It only communicates via HTTP APIs.
 
 ---
 
@@ -127,10 +118,10 @@ AI only sends HTTP requests to this backend.
 1. AI server NEVER accesses DB directly
 2. AI server NEVER contains business logic
 3. AI server ONLY calls backend APIs
-4. Backend handles ALL logic and DB work
+4. Backend handles ALL real operations
 5. LLM NEVER executes code
-6. LLM ONLY returns text/tool decisions
-7. Models are hosted on HuggingFace only
+6. LLM ONLY returns reasoning/text/tool decisions
+7. All models run via cloud APIs only
 8. No local inference or GPUs
 
 If any rule breaks → architecture is wrong
@@ -139,37 +130,35 @@ If any rule breaks → architecture is wrong
 
 # Tech Stack
 
-## Frontend (current)
+## Frontend
 - Streamlit
 
 ## AI Server
 - Python 3.10
 - Flask
 - LangChain
-- langchain-huggingface
-- requests/httpx
+- langchain-google-genai
+- requests / httpx
 
-## Backend (already built)
-- Node
-- Express
-- MongoDB
+## Backend
+- External HTTP API service (already implemented)
 
 ## LLM Provider
-- HuggingFace Inference API (hosted)
+- Google Gemini API (hosted)
 
 ---
 
-# LLM Configuration (Final Working Setup)
+# LLM Configuration (Official Setup)
 
-Modern HuggingFace models are conversational only.
+We use **Google Gemini models** via LangChain.
 
-Old approach (deprecated):
-❌ HuggingFaceHub  
-❌ text-generation task  
+Old (removed):
+❌ HuggingFace  
+❌ Local models  
 
-New required approach:
-✅ HuggingFaceEndpoint + ChatHuggingFace  
-✅ conversational task  
+New (final):
+✅ Gemini API  
+✅ ChatGoogleGenerativeAI  
 
 ---
 
@@ -178,20 +167,18 @@ New required approach:
 ```python
 import os
 from dotenv import load_dotenv
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+from langchain_google_genai import ChatGoogleGenerativeAI
 
 load_dotenv()
 
 def get_llm():
-    endpoint = HuggingFaceEndpoint(
-        repo_id="meta-llama/Llama-3.2-3B-Instruct",
-        task="conversational",
-        huggingfacehub_api_token=os.getenv("HF_TOKEN"),
-        temperature=0.3,
-        max_new_tokens=200,
+
+    chat_model = ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash-lite",
+        temperature=0.3
     )
 
-    return ChatHuggingFace(llm=endpoint)
+    return chat_model
 ```
 
 ---
@@ -209,6 +196,8 @@ print(response.content)
 ```
 
 Do NOT pass plain strings.
+
+Always pass message objects.
 
 ---
 
@@ -247,7 +236,7 @@ Examples:
 - reschedule
 
 Flow:
-User → Agent → tool → backend → DB update → confirmation
+User → Agent → tool → backend → confirmation
 
 ---
 
@@ -257,15 +246,17 @@ Each tool = one backend API wrapper
 
 Examples:
 
-search_buses()  → GET /routes  
-book_ticket()   → POST /book  
-cancel_ticket() → POST /cancel  
+search_buses()  
+book_ticket()  
+cancel_ticket()  
 
-Tools only make HTTP requests.  
-No business logic allowed.
+Rules:
+- tools only make HTTP requests
+- no business logic
+- no DB access
+- no validations
 
-Later:
-Backend API endpoints will be added and mapped to tools.
+Backend remains the single source of truth.
 
 ---
 
@@ -286,7 +277,7 @@ state → structured info (routeId, seats, etc.)
 Storage:
 - in-memory dict or Redis
 
-No:
+Not required:
 - vector DB
 - embeddings
 - RAG
@@ -301,7 +292,7 @@ Streamlit → interaction
 AI Server → thinking  
 Backend → execution  
 Database → storage  
-LLM → reasoning only  
+Gemini → reasoning only  
 
 ---
 
@@ -311,6 +302,6 @@ Chatbot = read-only assistant
 Agent = action executor  
 AI server = smart client only  
 Backend = real system  
-LLM = hosted reasoning engine  
+Gemini = hosted reasoning engine  
 
-This architecture is fixed and must not change.
+This architecture is **final and fixed**.
