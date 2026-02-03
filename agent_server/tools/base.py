@@ -6,6 +6,7 @@ def post(path, payload):
 
 def get(path):
     return requests.get(BASE_URL + path).json()
+    # return requests.get(BASE_URL + path)
 
 def put(path, payload):
     return requests.put(BASE_URL + path, json=payload).json()

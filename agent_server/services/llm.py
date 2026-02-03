@@ -1,9 +1,22 @@
-from langchain_google_genai import ChatGoogleGenerativeAI
-from config import GEMINI_API_KEY
+
+import os
+from dotenv import load_dotenv
+
+from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+
+load_dotenv()
 
 def get_llm():
-    return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash-lite",
+    # low-level endpoint (provider connection)
+    endpoint = HuggingFaceEndpoint(
+        repo_id="meta-llama/Llama-3.2-3B-Instruct",
+        task="text-generation",          # IMPORTANT
+        huggingfacehub_api_token=os.getenv("HF_TOKEN"),
         temperature=0.3,
-        google_api_key=GEMINI_API_KEY
+        max_new_tokens=200,
     )
+
+    # chat wrapper (what LangChain expects)
+    chat_model = ChatHuggingFace(llm=endpoint)
+
+    return chat_model

@@ -1,0 +1,10 @@
+flask
+flask-cors
+langchain
+langchain-huggingface
+langchain_google_genai
+langchain-core
+huggingface_hub
+python-dotenv
+requests
+httpx
