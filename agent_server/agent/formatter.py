@@ -66,7 +66,6 @@ def format_bus_list(data: dict) -> str:
     print("Calling Formatter LLM......")
     response = llm.invoke(prompt)
     content = response.content
-    print("RAW RESPONSE(CONTENT)(formatter):", content)
     
 
     if isinstance(response.content, str):
