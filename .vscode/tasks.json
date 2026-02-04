@@ -1,0 +1,53 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Backend (Node)",
+      "type": "shell",
+      "command": "npm start server",
+      "options": {
+        "cwd": "E:/Dynamic-Dreamz/DD-Booking-Web/backend"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "servers"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Frontend (Streamlit)",
+      "type": "shell",
+      "command": ".venv\\Scripts\\activate && streamlit run streamlit_app.py",
+      "options": {
+        "cwd": "${workspaceFolder}/frontend"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "servers"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Agent Server (Python)",
+      "type": "shell",
+      "command": "python app.py",
+      "options": {
+        "cwd": "${workspaceFolder}/agent_server"
+      },
+      "presentation": {
+        "panel": "new",
+        "group": "servers"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start All",
+      "dependsOn": [
+        "Backend (Node)",
+        "Frontend (Streamlit)",
+        "Agent Server (Python)"
+      ],
+      "dependsOrder": "parallel"
+    }
+  ]
+}

@@ -36,4 +36,4 @@ if prompt := st.chat_input("Type your message"):
     st.session_state.messages.append(
         {"role": "assistant", "content": reply}
     )
-    st.chat_message("assistant").write(reply)
+    st.chat_message("assistant").markdown(reply)

@@ -1,0 +1,10 @@
+cd E:\Dynamic-Dreamz\DD-Booking-Web\backend
+npm start server
+
+.venv\Scripts\activate
+cd frontend
+streamlit run streamlit_app.py
+
+.venv\Scripts\activate
+cd .\agent_server\
+python app.py

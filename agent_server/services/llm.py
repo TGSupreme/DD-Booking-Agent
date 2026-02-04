@@ -9,11 +9,11 @@ load_dotenv()
 def get_llm():
     # low-level endpoint (provider connection)
     endpoint = HuggingFaceEndpoint(
-        repo_id="meta-llama/Llama-3.2-3B-Instruct",
+        repo_id="meta-llama/Llama-3.1-8B-Instruct",
         task="text-generation",          # IMPORTANT
         huggingfacehub_api_token=os.getenv("HF_TOKEN"),
-        temperature=0.3,
-        max_new_tokens=200,
+        temperature=0,
+        max_new_tokens=250
     )
 
     # chat wrapper (what LangChain expects)

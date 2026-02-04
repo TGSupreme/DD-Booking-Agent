@@ -28,16 +28,33 @@ llm = get_llm()
 BUS_FORMAT_PROMPT = """
 You are a helpful travel assistant.
 
-Convert the given bus search result JSON into a friendly conversational message.
+Convert the bus search result JSON into a friendly, natural message.
+
+Guidelines:
+- Start with a short conversational sentence
+- Mention number of buses found
+- Keep tone simple and concise
+- Avoid long descriptions
+
+For each bus, you MUST use EXACTLY this Markdown format:
+
+### Bus <number>: <operator> (<bus_number>)
+- Departure: <departure_time>
+- Arrival: <arrival_time>
+- Price: ₹<price>
+- Total seats: <total_seats>
+- Available seats: <available_seats>
+- Amenities: <comma separated list>
+
+After listing all buses, add a short summary (max 2 sentences) comparing:
+- cheapest bus
+- earliest or fastest option
 
 Rules:
-- Speak naturally like a human assistant
-- Summarize nicely
-- Mention number of buses found
-- Highlight price, time, and seats
-- If no buses, politely inform user
-- DO NOT output JSON
-- DO NOT explain anything
+- Do not add extra sentences inside bus blocks
+- Keep response compact
+- Do NOT output JSON
+- Do NOT explain anything
 """
 
 def format_bus_list(data: dict) -> str:
@@ -46,13 +63,17 @@ def format_bus_list(data: dict) -> str:
         ("user", json.dumps(data, indent=2))
     ]
 
+    print("Calling Formatter LLM......")
     response = llm.invoke(prompt)
+    content = response.content
+    print("RAW RESPONSE(CONTENT)(formatter):", content)
+    
 
     if isinstance(response.content, str):
-        return response.content.strip()
+        return content.strip()
 
     if isinstance(response.content, list):
-        for item in response.content:
+        for item in content:
             if item.get("type") == "text":
                 return item["text"].strip()
 
