@@ -1,8 +1,8 @@
 from services.intent_extractor import extract_intent
 from tools.search_bus import search_bus
 from agent.formatter import format_bus_list
+from agent.action_router import route_action
 from agent.intent_router import route_intent
-
 
 FALLBACK_MSG = "This service is not available yet."
 
@@ -24,15 +24,14 @@ FALLBACK_MSG = "This service is not available yet."
 def handle_message(message: str) -> str:
     intent = route_intent(message)
 
-    print(type(intent))
+    print((intent))
 
-    if((intent["intent"] == "conversational") or (intent["intent"] == "unrelated")):
-        return (intent['response'])
+    if intent["intent"] in {"conversational", "unrelated", "unsupported"}:
+        return intent["response"]
     
     if((intent["intent"] == "action")):
-        return "you are in the action case"
+        return route_action(message)
     
-    if((intent["intent"] == "action")):
-        return "you are in the action case"
-    return intent
+
+    return "intent doesnt match any case (intent_router failed)"
 
