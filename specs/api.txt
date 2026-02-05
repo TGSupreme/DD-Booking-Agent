@@ -26,15 +26,16 @@ Body:
 
 Response:
 {
-  success: boolean
-  message: string
-  user: {
-    id: string (MongoDB ObjectId)
-    name: string
-    email: string
-    phone: number
-    role: user | admin
-  }
+  "success": "boolean",
+  "message": "string",
+  "user": {
+    "id": "string (MongoDB ObjectId)",
+    "name": "string",
+    "email": "string",
+    "phone": "number",
+    "role": "user | admin"
+  },
+  "token": "string (JWT access token)"
 }
 
 Cookies Set:

@@ -1,11 +1,12 @@
 from services.llm import get_llm
 import json
 from agent.handler.handle_search_bus import handle_search_bus
+from agent.handler.handle_login import handle_login
 from agent.prompts.prompts import ACTION_ROUTER_PROMPT
 
 llm = get_llm()
 
-def route_action(message: str):
+def route_action(message: str, session):
     
     prompt = [
     ("system", ACTION_ROUTER_PROMPT),
@@ -18,6 +19,10 @@ def route_action(message: str):
     if (content['intent'] == 'search_bus'):
         return handle_search_bus(message)
     
+
+    elif (content['intent'] == 'login'):
+        return handle_login(message)
+
     print(content)
 
-    return (f"message came in action router {message}")
+    return (f"message came in action router but this intent is not handles in action_router :  msg{message}")

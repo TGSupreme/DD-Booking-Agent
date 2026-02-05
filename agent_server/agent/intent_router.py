@@ -6,7 +6,7 @@ from agent.prompts.prompts import INTENT_PROMPT
 
 llm = get_llm()
 
-def route_intent(message: str):
+def route_intent(message: str, session):
     
     prompt = [
     ("system", INTENT_PROMPT),

@@ -12,8 +12,11 @@ def health():
 @chat_bp.route("/chat", methods=["POST"])
 def chat():
     data = request.json
+    session_id = data.get("session_id")
+    session = get_session(session_id)
+    
     user_msg = data.get("message", "")
 
-    reply = handle_message(user_msg)
+    reply = handle_message(user_msg, session)
 
     return jsonify({"reply": reply})

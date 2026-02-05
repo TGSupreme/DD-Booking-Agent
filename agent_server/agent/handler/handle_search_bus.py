@@ -15,9 +15,9 @@ def handle_search_bus(message):
         invalid_stop = (intent["parameters"])['invalid_stop']
         return f"{invalid_stop} is not a valid station"
     
-    elif (intent["intent"] == "nvalid_date"):
-        nvalid_date = (intent["parameters"])['nvalid_date']
-        return f"{nvalid_date} is not a valid date (are you dumb that why you are single bcz you cannot find a date)"
+    elif (intent["intent"] == "invalid_date"):
+        invalid_date = (intent["parameters"])['invalid_date']
+        return f"{invalid_date} is not a valid date (are you dumb that why you are single bcz you cannot find a date)"
     
     else:
         print(payload)

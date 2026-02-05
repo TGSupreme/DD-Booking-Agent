@@ -22,44 +22,13 @@
 
 from services.llm import get_llm
 import json
-
+from agent.prompts.prompts import SEARCH_BUS_FORMATTER_PROMPT
 llm = get_llm()
 
-BUS_FORMAT_PROMPT = """
-You are a helpful travel assistant.
-
-Convert the bus search result JSON into a friendly, natural message.
-
-Guidelines:
-- Start with a short conversational sentence
-- Mention number of buses found
-- Keep tone simple and concise
-- Avoid long descriptions
-
-For each bus, you MUST use EXACTLY this Markdown format:
-
-### Bus <number>: <operator> (<bus_number>)
-- Departure: <departure_time>
-- Arrival: <arrival_time>
-- Price: ₹<price>
-- Total seats: <total_seats>
-- Available seats: <available_seats>
-- Amenities: <comma separated list>
-
-After listing all buses, add a short summary (max 2 sentences) comparing:
-- cheapest bus
-- earliest or fastest option
-
-Rules:
-- Do not add extra sentences inside bus blocks
-- Keep response compact
-- Do NOT output JSON
-- Do NOT explain anything
-"""
 
 def format_bus_list(data: dict) -> str:
     prompt = [
-        ("system", BUS_FORMAT_PROMPT),
+        ("system", SEARCH_BUS_FORMATTER_PROMPT),
         ("user", json.dumps(data, indent=2))
     ]
 
