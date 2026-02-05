@@ -9,9 +9,13 @@ from agent.prompts.prompts import EXTRACT_LOGIN_PARAMETER_PROMPT
 
 def handle_login(message):
     intent = extract_params(message)
-    payload = intent['parameters']
+    print(intent)
     
+    # if intent
     
+    # payload = intent['parameters']
+    return "lalalalalalala"
+
 
 def extract_params(message):
     llm = get_llm()

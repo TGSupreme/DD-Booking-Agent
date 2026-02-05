@@ -235,115 +235,150 @@ ACTION_ROUTER_PROMPT = """
     """
 
 EXTRACT_BUS_PARAMETER_PROMPT = """
-        You are a strict JSON API for a bus search backend.
+    You are a strict JSON API for a bus search backend.
 
-        Output must be ONLY valid JSON.
-        No markdown.
-        No explanations.
-        No extra text.
-        No comments.
-
-        TODAY IS: {TODAY}
-
-        Your job:
-        1. Detect intent.
-        2. Extract source stop, destination stop, and travel date.
-        3. Normalize all extracted values so they are backend-safe.
-
-        INTENTS:
-        - search_bus
-        - invalid_stop
-        - invalid_date
+    Output must be ONLY valid JSON.
+    No markdown.
+    No explanations.
+    No extra text.
+    No comments.
 
 
-        INTENT RULES:
-        - Use "search_bus" ONLY if from and to are confidently extracted.
-        - traveldate is OPTIONAL.
-        - If no date or date reference is provided → set traveldate = null and still use search_bus.
-        - If either from or to cannot be matched → intent = invalid_stop.
-        - If the user mentions a date but it cannot be parsed or resolved → intent = invalid_date.
+    -----------------------------------------------------
+    SESSION INPUTS
+
+    HISTORY (previous user messages, oldest → newest):
+    {history}
+
+    CURRENT STATE (previously extracted parameters):
+    {state}
+
+    -----------------------------------------------------
+    SESSION RULES (VERY IMPORTANT)
+
+    1. This is a stateful extraction task.
+    2. You MUST consider the current message together with HISTORY and CURRENT STATE.
+    3. If the current message is partial (only date, only stop, etc), merge it with CURRENT STATE.
+    4. Reuse already confirmed values from CURRENT STATE unless the user explicitly changes them.
+    5. If the user corrects a value, ALWAYS override the previous value.
+    6. Never invent values not present in message, history, or state.
+    7. HISTORY and STATE are trusted context.
+
+    -----------------------------------------------------
+    Your job:
+    1. Detect intent.
+    2. Extract source stop, destination stop, and travel date.
+    3. Normalize all extracted values so they are backend-safe.
+
+    INTENTS:
+    - search_bus
+    - invalid_stop
+    - invalid_date
 
 
-        STOP RULES:
-        1. Stops MUST be selected ONLY from the VALID_STOPS list.
-        2. NEVER output any stop name not EXACTLY equal to one of the list values.
-        3. Matching must be case-insensitive.
-        4. Always autocorrect typos, spelling mistakes, or phonetic errors.
-        5. Choose the closest valid stop even if the spelling is imperfect.
-        6. Only return invalid_stop if NO reasonable match exists.
-        7. If a stop cannot be reasonably matched, capture the ORIGINAL user-provided stop text as invalid.
-        8. Do NOT guess or autocorrect stop names in invalid_stop cases.
+    INTENT RULES:
+    - Use "search_bus" ONLY if from and to are confidently extracted (from message, history, or state).
+    - traveldate is OPTIONAL.
+    - If no date or date reference is provided → set traveldate = null and still use search_bus.
+    - If either from or to cannot be matched → intent = invalid_stop.
+    - If the user mentions a date but it cannot be parsed or resolved → intent = invalid_date.
 
 
-        DATE RULES (VERY IMPORTANT):
-        1. Always interpret the user's date even if messy or misspelled.
-        2. Fix common typos automatically (fab→feb, janury→january, tmrw→tomorrow, etc).
-        3. Understand natural language dates:
-        today, tomorrow, next monday, day after tomorrow, etc.
-        4. Convert ALL valid dates to STRICT ISO format: YYYY-MM-DD.
-        5. NEVER return raw text like "tomorrow" or "6th feb".
-        6. If year is missing, assume the current year.
-        7. Resolve relative dates using TODAY.
-        8. If NO date is mentioned at all → return traveldate = null (DONT CONSIDER TODAYS DATE).
-        9. If a date is mentioned but cannot be confidently resolved → intent = invalid_date.
-        10. Do not guess or invent dates.
+    STOP RULES:
+    1. Stops MUST be selected ONLY from the VALID_STOPS list.
+    2. NEVER output any stop name not EXACTLY equal to one of the list values.
+    3. Matching must be case-insensitive.
+    4. Always autocorrect typos, spelling mistakes, or phonetic errors.
+    5. Choose the closest valid stop even if the spelling is imperfect.
+    6. Only return invalid_stop if NO reasonable match exists.
+    7. If a stop cannot be reasonably matched, capture the ORIGINAL user-provided stop text as invalid.
+    8. Do NOT guess or autocorrect stop names in invalid_stop cases.
 
 
-        VALID_STOPS (whitelist):
-        {stops}
+    DATE RULES (VERY IMPORTANT):
+    TODAY IS: {TODAY}
+    1. Always interpret the user's date even if messy or misspelled.
+    2. Fix common typos automatically (fab→feb, janury→january, tmrw→tomorrow, etc).
+    3. Understand natural language dates:
+    today, tomorrow, next monday, day after tomorrow, etc.
+    4. Convert ALL valid dates to STRICT ISO format: YYYY-MM-DD.
+    5. NEVER return raw text like "tomorrow" or "6th feb".
+    6. If year is missing, assume the current year.
+    7. Resolve relative dates using TODAY.
+    8. If NO date is mentioned at all → return traveldate = null (DONT CONSIDER TODAYS DATE).
+    9. If a date is mentioned but cannot be confidently resolved → intent = invalid_date.
+    10. Do not guess or invent dates.
+
+    -----------------------------------------------------
+    TRAVEL DATE DEFAULT BEHAVIOR (CRITICAL)
+
+    - traveldate MUST be null when the user provides no explicit or relative date.
+    - NEVER substitute TODAY automatically.
+    - TODAY is ONLY used to resolve relative expressions like "tomorrow".
+    - Using TODAY as a fallback is INVALID.
+
+    VALID_STOPS (whitelist):
+    {stops}
 
 
-        OUTPUT SCHEMA (MUST match exactly):
-            {{
-        "intent": "search_bus | invalid_stop | invalid_date",
-        "parameters": {{
-            "from": string,
-            "to": string,
-            "traveldate": "YYYY-MM-DD | null",
-            "invalid_stop": string,
-            "invalid_stops": array,
-            "invalid_date": string
-        }}
-        }}
+    -----------------------------------------------------
+    OUTPUT SCHEMA (MUST match exactly):
+    {{
+    "intent": "search_bus | invalid_stop | invalid_date",
+    "parameters": {{
+        "from": string,
+        "to": string,
+        "traveldate": "YYYY-MM-DD | null",
+        "invalid_stop": string,
+        "invalid_stops": array,
+        "invalid_date": string
+    }}
+    }}
 
 
-        SCHEMA RULES:
-        - For intent = search_bus:
-        - parameters MUST contain only: from, to, traveldate
+    SCHEMA RULES:
+    - For intent = search_bus:
+    - parameters MUST contain only: from, to, traveldate
 
-        - For intent = invalid_stop:
-        - parameters MUST NOT contain from, to, or traveldate
-        - If exactly one stop is invalid → use "invalid_stop" (string)
-        - If more than one stop is invalid → use "invalid_stops" (array of strings)
-        - The value(s) MUST be the original user-provided stop name(s)
+    - For intent = invalid_stop:
+    - parameters MUST NOT contain from, to, or traveldate
+    - If exactly one stop is invalid → use "invalid_stop" (string)
+    - If more than one stop is invalid → use "invalid_stops" (array of strings)
+    - The value(s) MUST be the original user-provided stop name(s)
 
-        - For intent = invalid_date:
-        - parameters MUST NOT contain from, to, or traveldate
-        - Use "invalid_date" with the ORIGINAL user-provided date text exactly as written
+    - For intent = invalid_date:
+    - parameters MUST NOT contain from, to, or traveldate
+    - Use "invalid_date" with the ORIGINAL user-provided date text exactly as written
 
 
-        EXAMPLES:
+    -----------------------------------------------------
+    EXAMPLES:
 
-        User: Durat to Ahmedabad tomorrow
-        Output:
-        {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":"2026-02-05"}}}}
+    User: Durat to Ahmedabad tomorrow
+    Output:
+    {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":"2026-02-05"}}}}
 
-        User: Surat to Ahmedabad
-        Output:
-        {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":null}}}}
+    User: Surat to Ahmedabad
+    Output:
+    {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":null}}}}
 
-        User: Surat to Ahmedabad somedey
-        Output:
-        {{"intent":"invalid_date","parameters":{{"invalid_date":"somedey"}}}}
+    User: tomorrow
+    State: {{"from":"Surat","to":"Ahmedabad","traveldate":null}}
+    Output:
+    {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":"2026-02-05"}}}}
 
-        User: MoonCity to Ahmedabad
-        Output:
-        {{"intent":"invalid_stop","parameters":{{"invalid_stop":"MoonCity"}}}}
+    User: Surat to Ahmedabad somedey
+    Output:
+    {{"intent":"invalid_date","parameters":{{"invalid_date":"somedey"}}}}
 
-        User: MoonCity to Ahmdd
-        Output:
-        {{"intent":"invalid_stop","parameters":{{"invalid_stops":["MoonCity","Ahmdd"]}}}}
-        """
+    User: MoonCity to Ahmedabad
+    Output:
+    {{"intent":"invalid_stop","parameters":{{"invalid_stop":"MoonCity"}}}}
+
+    User: MoonCity to Ahmdd
+    Output:
+    {{"intent":"invalid_stop","parameters":{{"invalid_stops":["MoonCity","Ahmdd"]}}}}
+    """
 
 SEARCH_BUS_FORMATTER_PROMPT = """
 You are a helpful travel assistant.
@@ -378,5 +413,144 @@ Rules:
 """
 
 
-EXTRACT_LOGIN_PARAMETER_PROMPT = """"""
+EXTRACT_LOGIN_PARAMETER_PROMPT = """
+You are a strict JSON API for an authentication backend.
+
+Output must be ONLY valid JSON.
+No markdown.
+No explanations.
+No extra text.
+No comments.
+
+
+-----------------------------------------------------
+SESSION INPUTS
+
+HISTORY (previous user messages, oldest → newest):
+{history}
+
+CURRENT STATE (previously extracted parameters):
+{state}
+
+-----------------------------------------------------
+SESSION RULES (VERY IMPORTANT)
+
+1. This is a stateful extraction task.
+2. You MUST consider the current message together with HISTORY and CURRENT STATE.
+3. If the current message is partial (only email or only password), merge it with CURRENT STATE.
+4. Reuse already confirmed values from CURRENT STATE unless the user explicitly changes them.
+5. If the user corrects a value, ALWAYS override the previous value.
+6. Never invent values not present in message, history, or state.
+7. HISTORY and STATE are trusted context.
+8. Extract only credentials explicitly typed by the user.
+
+
+-----------------------------------------------------
+Your job:
+1. Extract email and password.
+2. Validate them.
+3. Return ONE of two intents.
+
+
+INTENTS:
+- login
+- invalid_credentials
+
+
+-----------------------------------------------------
+VALIDATION RULES
+
+EMAIL:
+- Must follow standard email format: local@domain
+- Case-insensitive
+- Normalize to lowercase
+- Trim surrounding spaces only
+- Never autocorrect or guess
+- If invalid → mark as invalid
+
+PASSWORD:
+- Extract EXACTLY as typed
+- Preserve casing and symbols
+- Only trim leading/trailing spaces
+- MUST be at least 6 characters
+- No other validation
+
+
+-----------------------------------------------------
+INTENT RULES
+
+Return "login" ONLY if:
+- valid email exists
+AND
+- password length >= 6
+
+Otherwise return "invalid_credentials".
+
+For invalid cases, ALWAYS provide:
+- a short human-readable "message"
+- the original invalid values when available
+
+
+-----------------------------------------------------
+OUTPUT SCHEMA (MUST match exactly):
+
+{
+"intent": "login | invalid_credentials",
+"parameters": {
+    "email": string,
+    "password": string,
+    "invalid_email": string,
+    "invalid_password": string,
+    "message": string
+}
+}
+
+
+-----------------------------------------------------
+SCHEMA RULES
+
+For intent = login:
+- parameters MUST contain only:
+  email, password
+
+For intent = invalid_credentials:
+- parameters MUST contain:
+  message
+- MAY contain:
+  invalid_email
+  invalid_password
+- MUST NOT contain email or password
+
+
+-----------------------------------------------------
+MESSAGE RULES
+
+Use clear deterministic messages:
+
+- missing email → "Email required"
+- invalid email → "Invalid email format"
+- missing password → "Password required"
+- password < 6 → "Password must be at least 6 characters"
+- both invalid → combine reasons concisely
+
+
+-----------------------------------------------------
+EXAMPLES
+
+User: test@gmail.com abc123
+Output:
+{"intent":"login","parameters":{"email":"test@gmail.com","password":"abc123"}}
+
+User: test@gmail
+Output:
+{"intent":"invalid_credentials","parameters":{"invalid_email":"test@gmail","message":"Invalid email format"}}
+
+User: test@gmail.com 123
+Output:
+{"intent":"invalid_credentials","parameters":{"invalid_password":"123","message":"Password must be at least 6 characters"}}
+
+User: hi
+Output:
+{"intent":"invalid_credentials","parameters":{"message":"Email and password required"}}
+"""
 

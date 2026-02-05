@@ -1,5 +1,4 @@
-from services.llm import get_llm
-from .tool_registry import TOOLS
+from services.llm import get_llm\
 
 
 llm = get_llm()

@@ -1,0 +1,645 @@
+diff --git a/agent_server/agent/action_router.py b/agent_server/agent/action_router.py
+index a232164..99b10d9 100644
+--- a/agent_server/agent/action_router.py
++++ b/agent_server/agent/action_router.py
+@@ -15,14 +15,15 @@ def route_action(message: str, session):
+     
+     response = llm.invoke(prompt)
+     content = json.loads(response.content)
+-
++    print(f"Intent provided by Action-Router : {content.get('intent', 'UNKNOWN')}")
++    
+     if (content['intent'] == 'search_bus'):
+-        return handle_search_bus(message)
++        return handle_search_bus(message, session)
+     
+ 
+     elif (content['intent'] == 'login'):
+         return handle_login(message)
+ 
+-    print(content)
+-
+-    return (f"message came in action router but this intent is not handles in action_router :  msg{message}")
++    else:
++        return (f"message came in action router but this intent is not handles in action_router :  msg{message}")
++    
+diff --git a/agent_server/agent/agent.py b/agent_server/agent/agent.py
+index 30b7da8..2fe1b37 100644
+--- a/agent_server/agent/agent.py
++++ b/agent_server/agent/agent.py
+@@ -1,5 +1,4 @@
+-from services.llm import get_llm
+-from .tool_registry import TOOLS
++from services.llm import get_llm\
+ 
+ 
+ llm = get_llm()
+diff --git a/agent_server/agent/executor.py b/agent_server/agent/executor.py
+index 16d7f64..fc22677 100644
+--- a/agent_server/agent/executor.py
++++ b/agent_server/agent/executor.py
+@@ -1,6 +1,6 @@
+ from agent.action_router import route_action
+ from agent.intent_router import route_intent
+-from services.session import add_to_history
++from services.session import add_to_history, print_history
+ FALLBACK_MSG = "This service is not available yet."
+ 
+ 
+@@ -12,7 +12,8 @@ def handle_message(message: str, session) -> str:
+     intent = route_intent(message , session)
+     
+ 
+-    print((intent))
++    print(f"Intent provided by Intent-Router : {intent.get('intent', 'UNKNOWN')}")
++
+     
+     if intent["intent"] in {"conversational", "unrelated", "unsupported"}:
+         reply = intent["response"]
+@@ -25,7 +26,7 @@ def handle_message(message: str, session) -> str:
+         print ("intent doesnt match any case (intent_router failed)")
+         return "Your query is soo amazing our server exploded congrats......"
+     else:
+-        print(session['history'])
+         add_to_history(session, "user", message)
+         add_to_history(session, "assistant", reply)
++        print_history(session)
+         return reply
+diff --git a/agent_server/agent/handler/handle_login.py b/agent_server/agent/handler/handle_login.py
+index 39cfefa..ca79c92 100644
+--- a/agent_server/agent/handler/handle_login.py
++++ b/agent_server/agent/handler/handle_login.py
+@@ -9,9 +9,13 @@ from agent.prompts.prompts import EXTRACT_LOGIN_PARAMETER_PROMPT
+ 
+ def handle_login(message):
+     intent = extract_params(message)
+-    payload = intent['parameters']
++    print(intent)
+     
++    # if intent
+     
++    # payload = intent['parameters']
++    return "lalalalalalala"
++
+ 
+ def extract_params(message):
+     llm = get_llm()
+diff --git a/agent_server/agent/handler/handle_search_bus.py b/agent_server/agent/handler/handle_search_bus.py
+index b2de34f..fbfad00 100644
+--- a/agent_server/agent/handler/handle_search_bus.py
++++ b/agent_server/agent/handler/handle_search_bus.py
+@@ -1,37 +1,49 @@
+ from tools.search_bus import search_bus
+ from tools.stops import get_all_stops
+-from services.llm import get_llm
+ import json
+ from datetime import date
+ from services.llm import get_llm
+ from agent.formatter import format_bus_list
+ from agent.prompts.prompts import EXTRACT_BUS_PARAMETER_PROMPT
++from services.session import set_state_findBus
+ 
+-def handle_search_bus(message):
+-    intent = extract_params(message)
+-    payload = intent['parameters']
+-    
+-    if (intent["intent"] == "invalid_stop"):
+-        invalid_stop = (intent["parameters"])['invalid_stop']
+-        return f"{invalid_stop} is not a valid station"
++def handle_search_bus(message, session):
++    intent = extract_params(message, session)
++    intent_name = intent.get("intent")
++    print(f"Response provided by extract_params : {intent}")
++
++    payload = intent.get("parameters", {})
++
++    state = session["state"]
+     
+-    elif (intent["intent"] == "invalid_date"):
+-        invalid_date = (intent["parameters"])['invalid_date']
+-        return f"{invalid_date} is not a valid date (are you dumb that why you are single bcz you cannot find a date)"
++    if intent_name == "invalid_stop":
++        return f"{payload.get('invalid_stop')} is not a valid station"
++
++    if intent_name == "invalid_date":
++        return f"{payload.get('invalid_date')} is not a valid date. Please use YYYY-MM-DD."
++
+     
+     else:
+-        print(payload)
++        # print(f"Payload provided by extract_params : {payload}")
++
++
++        set_state_findBus(state, payload)
++        
+         apiResponse =  search_bus(payload)
+         return format_bus_list(apiResponse)
+ 
+ 
+-def extract_params(message):
++def extract_params(message, session):
+     stops = get_all_stops()
+     TODAY = date.today().isoformat()
+     llm = get_llm()
+     
+-    SYSTEM_PROMPT = EXTRACT_BUS_PARAMETER_PROMPT.format(TODAY = TODAY, stops = json.dumps(stops))
++    SYSTEM_PROMPT = EXTRACT_BUS_PARAMETER_PROMPT.format(TODAY = TODAY, 
++                                                        stops = json.dumps(stops),
++                                                        history= session['history'],
++                                                        state= session['state'])
+ 
++    
+     prompt = [
+         ("system", SYSTEM_PROMPT),
+         ("user", message)
+diff --git a/agent_server/agent/prompts/prompts.py b/agent_server/agent/prompts/prompts.py
+index 6d29abc..ab7bcbe 100644
+--- a/agent_server/agent/prompts/prompts.py
++++ b/agent_server/agent/prompts/prompts.py
+@@ -235,115 +235,150 @@ ACTION_ROUTER_PROMPT = """
+     """
+ 
+ EXTRACT_BUS_PARAMETER_PROMPT = """
+-        You are a strict JSON API for a bus search backend.
+-
+-        Output must be ONLY valid JSON.
+-        No markdown.
+-        No explanations.
+-        No extra text.
+-        No comments.
+-
+-        TODAY IS: {TODAY}
+-
+-        Your job:
+-        1. Detect intent.
+-        2. Extract source stop, destination stop, and travel date.
+-        3. Normalize all extracted values so they are backend-safe.
+-
+-        INTENTS:
+-        - search_bus
+-        - invalid_stop
+-        - invalid_date
+-
+-
+-        INTENT RULES:
+-        - Use "search_bus" ONLY if from and to are confidently extracted.
+-        - traveldate is OPTIONAL.
+-        - If no date or date reference is provided → set traveldate = null and still use search_bus.
+-        - If either from or to cannot be matched → intent = invalid_stop.
+-        - If the user mentions a date but it cannot be parsed or resolved → intent = invalid_date.
+-
+-
+-        STOP RULES:
+-        1. Stops MUST be selected ONLY from the VALID_STOPS list.
+-        2. NEVER output any stop name not EXACTLY equal to one of the list values.
+-        3. Matching must be case-insensitive.
+-        4. Always autocorrect typos, spelling mistakes, or phonetic errors.
+-        5. Choose the closest valid stop even if the spelling is imperfect.
+-        6. Only return invalid_stop if NO reasonable match exists.
+-        7. If a stop cannot be reasonably matched, capture the ORIGINAL user-provided stop text as invalid.
+-        8. Do NOT guess or autocorrect stop names in invalid_stop cases.
+-
+-
+-        DATE RULES (VERY IMPORTANT):
+-        1. Always interpret the user's date even if messy or misspelled.
+-        2. Fix common typos automatically (fab→feb, janury→january, tmrw→tomorrow, etc).
+-        3. Understand natural language dates:
+-        today, tomorrow, next monday, day after tomorrow, etc.
+-        4. Convert ALL valid dates to STRICT ISO format: YYYY-MM-DD.
+-        5. NEVER return raw text like "tomorrow" or "6th feb".
+-        6. If year is missing, assume the current year.
+-        7. Resolve relative dates using TODAY.
+-        8. If NO date is mentioned at all → return traveldate = null (DONT CONSIDER TODAYS DATE).
+-        9. If a date is mentioned but cannot be confidently resolved → intent = invalid_date.
+-        10. Do not guess or invent dates.
+-
+-
+-        VALID_STOPS (whitelist):
+-        {stops}
+-
+-
+-        OUTPUT SCHEMA (MUST match exactly):
+-            {{
+-        "intent": "search_bus | invalid_stop | invalid_date",
+-        "parameters": {{
+-            "from": string,
+-            "to": string,
+-            "traveldate": "YYYY-MM-DD | null",
+-            "invalid_stop": string,
+-            "invalid_stops": array,
+-            "invalid_date": string
+-        }}
+-        }}
+-
+-
+-        SCHEMA RULES:
+-        - For intent = search_bus:
+-        - parameters MUST contain only: from, to, traveldate
+-
+-        - For intent = invalid_stop:
+-        - parameters MUST NOT contain from, to, or traveldate
+-        - If exactly one stop is invalid → use "invalid_stop" (string)
+-        - If more than one stop is invalid → use "invalid_stops" (array of strings)
+-        - The value(s) MUST be the original user-provided stop name(s)
+-
+-        - For intent = invalid_date:
+-        - parameters MUST NOT contain from, to, or traveldate
+-        - Use "invalid_date" with the ORIGINAL user-provided date text exactly as written
+-
+-
+-        EXAMPLES:
+-
+-        User: Durat to Ahmedabad tomorrow
+-        Output:
+-        {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":"2026-02-05"}}}}
+-
+-        User: Surat to Ahmedabad
+-        Output:
+-        {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":null}}}}
+-
+-        User: Surat to Ahmedabad somedey
+-        Output:
+-        {{"intent":"invalid_date","parameters":{{"invalid_date":"somedey"}}}}
+-
+-        User: MoonCity to Ahmedabad
+-        Output:
+-        {{"intent":"invalid_stop","parameters":{{"invalid_stop":"MoonCity"}}}}
+-
+-        User: MoonCity to Ahmdd
+-        Output:
+-        {{"intent":"invalid_stop","parameters":{{"invalid_stops":["MoonCity","Ahmdd"]}}}}
+-        """
++    You are a strict JSON API for a bus search backend.
++
++    Output must be ONLY valid JSON.
++    No markdown.
++    No explanations.
++    No extra text.
++    No comments.
++
++
++    -----------------------------------------------------
++    SESSION INPUTS
++
++    HISTORY (previous user messages, oldest → newest):
++    {history}
++
++    CURRENT STATE (previously extracted parameters):
++    {state}
++
++    -----------------------------------------------------
++    SESSION RULES (VERY IMPORTANT)
++
++    1. This is a stateful extraction task.
++    2. You MUST consider the current message together with HISTORY and CURRENT STATE.
++    3. If the current message is partial (only date, only stop, etc), merge it with CURRENT STATE.
++    4. Reuse already confirmed values from CURRENT STATE unless the user explicitly changes them.
++    5. If the user corrects a value, ALWAYS override the previous value.
++    6. Never invent values not present in message, history, or state.
++    7. HISTORY and STATE are trusted context.
++
++    -----------------------------------------------------
++    Your job:
++    1. Detect intent.
++    2. Extract source stop, destination stop, and travel date.
++    3. Normalize all extracted values so they are backend-safe.
++
++    INTENTS:
++    - search_bus
++    - invalid_stop
++    - invalid_date
++
++
++    INTENT RULES:
++    - Use "search_bus" ONLY if from and to are confidently extracted (from message, history, or state).
++    - traveldate is OPTIONAL.
++    - If no date or date reference is provided → set traveldate = null and still use search_bus.
++    - If either from or to cannot be matched → intent = invalid_stop.
++    - If the user mentions a date but it cannot be parsed or resolved → intent = invalid_date.
++
++
++    STOP RULES:
++    1. Stops MUST be selected ONLY from the VALID_STOPS list.
++    2. NEVER output any stop name not EXACTLY equal to one of the list values.
++    3. Matching must be case-insensitive.
++    4. Always autocorrect typos, spelling mistakes, or phonetic errors.
++    5. Choose the closest valid stop even if the spelling is imperfect.
++    6. Only return invalid_stop if NO reasonable match exists.
++    7. If a stop cannot be reasonably matched, capture the ORIGINAL user-provided stop text as invalid.
++    8. Do NOT guess or autocorrect stop names in invalid_stop cases.
++
++
++    DATE RULES (VERY IMPORTANT):
++    TODAY IS: {TODAY}
++    1. Always interpret the user's date even if messy or misspelled.
++    2. Fix common typos automatically (fab→feb, janury→january, tmrw→tomorrow, etc).
++    3. Understand natural language dates:
++    today, tomorrow, next monday, day after tomorrow, etc.
++    4. Convert ALL valid dates to STRICT ISO format: YYYY-MM-DD.
++    5. NEVER return raw text like "tomorrow" or "6th feb".
++    6. If year is missing, assume the current year.
++    7. Resolve relative dates using TODAY.
++    8. If NO date is mentioned at all → return traveldate = null (DONT CONSIDER TODAYS DATE).
++    9. If a date is mentioned but cannot be confidently resolved → intent = invalid_date.
++    10. Do not guess or invent dates.
++
++    -----------------------------------------------------
++    TRAVEL DATE DEFAULT BEHAVIOR (CRITICAL)
++
++    - traveldate MUST be null when the user provides no explicit or relative date.
++    - NEVER substitute TODAY automatically.
++    - TODAY is ONLY used to resolve relative expressions like "tomorrow".
++    - Using TODAY as a fallback is INVALID.
++
++    VALID_STOPS (whitelist):
++    {stops}
++
++
++    -----------------------------------------------------
++    OUTPUT SCHEMA (MUST match exactly):
++    {{
++    "intent": "search_bus | invalid_stop | invalid_date",
++    "parameters": {{
++        "from": string,
++        "to": string,
++        "traveldate": "YYYY-MM-DD | null",
++        "invalid_stop": string,
++        "invalid_stops": array,
++        "invalid_date": string
++    }}
++    }}
++
++
++    SCHEMA RULES:
++    - For intent = search_bus:
++    - parameters MUST contain only: from, to, traveldate
++
++    - For intent = invalid_stop:
++    - parameters MUST NOT contain from, to, or traveldate
++    - If exactly one stop is invalid → use "invalid_stop" (string)
++    - If more than one stop is invalid → use "invalid_stops" (array of strings)
++    - The value(s) MUST be the original user-provided stop name(s)
++
++    - For intent = invalid_date:
++    - parameters MUST NOT contain from, to, or traveldate
++    - Use "invalid_date" with the ORIGINAL user-provided date text exactly as written
++
++
++    -----------------------------------------------------
++    EXAMPLES:
++
++    User: Durat to Ahmedabad tomorrow
++    Output:
++    {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":"2026-02-05"}}}}
++
++    User: Surat to Ahmedabad
++    Output:
++    {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":null}}}}
++
++    User: tomorrow
++    State: {{"from":"Surat","to":"Ahmedabad","traveldate":null}}
++    Output:
++    {{"intent":"search_bus","parameters":{{"from":"Surat","to":"Ahmedabad","traveldate":"2026-02-05"}}}}
++
++    User: Surat to Ahmedabad somedey
++    Output:
++    {{"intent":"invalid_date","parameters":{{"invalid_date":"somedey"}}}}
++
++    User: MoonCity to Ahmedabad
++    Output:
++    {{"intent":"invalid_stop","parameters":{{"invalid_stop":"MoonCity"}}}}
++
++    User: MoonCity to Ahmdd
++    Output:
++    {{"intent":"invalid_stop","parameters":{{"invalid_stops":["MoonCity","Ahmdd"]}}}}
++    """
+ 
+ SEARCH_BUS_FORMATTER_PROMPT = """
+ You are a helpful travel assistant.
+@@ -378,5 +413,144 @@ Rules:
+ """
+ 
+ 
+-EXTRACT_LOGIN_PARAMETER_PROMPT = """"""
++EXTRACT_LOGIN_PARAMETER_PROMPT = """
++You are a strict JSON API for an authentication backend.
++
++Output must be ONLY valid JSON.
++No markdown.
++No explanations.
++No extra text.
++No comments.
++
++
++-----------------------------------------------------
++SESSION INPUTS
++
++HISTORY (previous user messages, oldest → newest):
++{history}
++
++CURRENT STATE (previously extracted parameters):
++{state}
++
++-----------------------------------------------------
++SESSION RULES (VERY IMPORTANT)
++
++1. This is a stateful extraction task.
++2. You MUST consider the current message together with HISTORY and CURRENT STATE.
++3. If the current message is partial (only email or only password), merge it with CURRENT STATE.
++4. Reuse already confirmed values from CURRENT STATE unless the user explicitly changes them.
++5. If the user corrects a value, ALWAYS override the previous value.
++6. Never invent values not present in message, history, or state.
++7. HISTORY and STATE are trusted context.
++8. Extract only credentials explicitly typed by the user.
++
++
++-----------------------------------------------------
++Your job:
++1. Extract email and password.
++2. Validate them.
++3. Return ONE of two intents.
++
++
++INTENTS:
++- login
++- invalid_credentials
++
++
++-----------------------------------------------------
++VALIDATION RULES
++
++EMAIL:
++- Must follow standard email format: local@domain
++- Case-insensitive
++- Normalize to lowercase
++- Trim surrounding spaces only
++- Never autocorrect or guess
++- If invalid → mark as invalid
++
++PASSWORD:
++- Extract EXACTLY as typed
++- Preserve casing and symbols
++- Only trim leading/trailing spaces
++- MUST be at least 6 characters
++- No other validation
++
++
++-----------------------------------------------------
++INTENT RULES
++
++Return "login" ONLY if:
++- valid email exists
++AND
++- password length >= 6
++
++Otherwise return "invalid_credentials".
++
++For invalid cases, ALWAYS provide:
++- a short human-readable "message"
++- the original invalid values when available
++
++
++-----------------------------------------------------
++OUTPUT SCHEMA (MUST match exactly):
++
++{
++"intent": "login | invalid_credentials",
++"parameters": {
++    "email": string,
++    "password": string,
++    "invalid_email": string,
++    "invalid_password": string,
++    "message": string
++}
++}
++
++
++-----------------------------------------------------
++SCHEMA RULES
++
++For intent = login:
++- parameters MUST contain only:
++  email, password
++
++For intent = invalid_credentials:
++- parameters MUST contain:
++  message
++- MAY contain:
++  invalid_email
++  invalid_password
++- MUST NOT contain email or password
++
++
++-----------------------------------------------------
++MESSAGE RULES
++
++Use clear deterministic messages:
++
++- missing email → "Email required"
++- invalid email → "Invalid email format"
++- missing password → "Password required"
++- password < 6 → "Password must be at least 6 characters"
++- both invalid → combine reasons concisely
++
++
++-----------------------------------------------------
++EXAMPLES
++
++User: test@gmail.com abc123
++Output:
++{"intent":"login","parameters":{"email":"test@gmail.com","password":"abc123"}}
++
++User: test@gmail
++Output:
++{"intent":"invalid_credentials","parameters":{"invalid_email":"test@gmail","message":"Invalid email format"}}
++
++User: test@gmail.com 123
++Output:
++{"intent":"invalid_credentials","parameters":{"invalid_password":"123","message":"Password must be at least 6 characters"}}
++
++User: hi
++Output:
++{"intent":"invalid_credentials","parameters":{"message":"Email and password required"}}
++"""
+ 
+diff --git a/agent_server/agent/tool_registry.py b/agent_server/agent/tool_registry.py
+deleted file mode 100644
+index 88e9e21..0000000
+--- a/agent_server/agent/tool_registry.py
++++ /dev/null
+@@ -1,15 +0,0 @@
+-from tools.login import login
+-from tools.stops import get_all_stops
+-from tools.search_bus import search_bus
+-from tools.seats import get_all_seats
+-from tools.create_ticket import create_ticket
+-from tools.payment import complete_ticket_payment
+-
+-TOOLS = {
+-    "login": login,
+-    "get_all_stops": get_all_stops,
+-    "search_bus": search_bus,
+-    "get_all_seats": get_all_seats,
+-    "create_ticket": create_ticket,
+-    "complete_ticket_payment": complete_ticket_payment
+-}
+diff --git a/agent_server/routes/chat.py b/agent_server/routes/chat.py
+index 45ae68d..9bc3740 100644
+--- a/agent_server/routes/chat.py
++++ b/agent_server/routes/chat.py
+@@ -1,5 +1,4 @@
+ from flask import Blueprint, request, jsonify
+-from agent.agent import run_agent
+ from services.session import get_session
+ from agent.executor import handle_message
+ 
+diff --git a/agent_server/services/session.py b/agent_server/services/session.py
+index 34646e0..34bc78e 100644
+--- a/agent_server/services/session.py
++++ b/agent_server/services/session.py
+@@ -35,4 +35,43 @@ def add_to_history(session, role, content):
+ 
+     # trim automatically
+     session["history"] = session["history"][-MAX_TURNS*2:]
+-    
+\ No newline at end of file
++
++def print_history(session, limit=None):
++    """
++    Pretty-print conversation history.
++
++    Args:
++        session (dict): session object from get_session()
++        limit (int | None): show only last N messages (default: all)
++    """
++    history = session.get("history", [])
++
++    if not history:
++        print("No conversation history.")
++        return
++
++    if limit:
++        history = history[-limit:]
++
++    print("\n=== Conversation History ===\n")
++
++    for i, msg in enumerate(history, 1):
++        role = msg["role"].upper()
++        content = msg["content"]
++
++        print(f"{i:02d}. [{role}]")
++        print(f"    {content}\n")
++
++    print("============================\n")
++    
++def set_state_findBus(state: dict, payload: dict) -> None:
++    required = ["from", "to"]
++    missing = [k for k in required if not payload.get(k)]
++    if missing:
++        raise ValueError(f"Missing fields: {missing}")
++
++    state.update({
++        "from_city": payload["from"],
++        "to_city": payload["to"],
++        "date": payload["traveldate"],
++    })
