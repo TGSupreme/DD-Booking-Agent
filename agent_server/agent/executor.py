@@ -1,6 +1,3 @@
-from services.intent_extractor import extract_intent
-from tools.search_bus import search_bus
-from agent.formatter import format_bus_list
 from agent.action_router import route_action
 from agent.intent_router import route_intent
 
