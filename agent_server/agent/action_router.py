@@ -15,13 +15,15 @@ def route_action(message: str, session):
     
     response = llm.invoke(prompt)
     content = json.loads(response.content)
+    intent_name = content['intent']
+    
     print(f"Intent provided by Action-Router : {content.get('intent', 'UNKNOWN')}")
     
-    if (content['intent'] == 'search_bus'):
+    if (intent_name == 'search_bus'):
         return handle_search_bus(message, session)
     
 
-    elif (content['intent'] == 'login'):
+    elif (intent_name == 'login'):
         return handle_login(message,session)
 
     else:

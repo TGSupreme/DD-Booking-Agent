@@ -10,16 +10,17 @@ def handle_message(message: str, session) -> str:
     
 
     intent = route_intent(message , session)
-    
+    intent_name = intent["intent"]
 
     print(f"Intent provided by Intent-Router : {intent.get('intent', 'UNKNOWN')}")
 
     
-    if intent["intent"] in {"conversational", "unrelated", "unsupported"}:
+    if intent_name in {"conversational", "unrelated", "unsupported"}:
         reply = intent["response"]
     
-    elif((intent["intent"] == "action")):
+    elif((intent_name == "action")):
         reply = route_action(message, session)
+
     
 
     if reply is None:
