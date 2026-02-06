@@ -494,16 +494,16 @@ For invalid cases, ALWAYS provide:
 -----------------------------------------------------
 OUTPUT SCHEMA (MUST match exactly):
 
-{
+{{
 "intent": "login | invalid_credentials",
-"parameters": {
+"parameters": {{
     "email": string,
     "password": string,
     "invalid_email": string,
     "invalid_password": string,
     "message": string
-}
-}
+}}
+}}
 
 
 -----------------------------------------------------
@@ -539,18 +539,18 @@ EXAMPLES
 
 User: test@gmail.com abc123
 Output:
-{"intent":"login","parameters":{"email":"test@gmail.com","password":"abc123"}}
+{{"intent":"login","parameters":{{"email":"test@gmail.com","password":"abc123"}}}}
 
 User: test@gmail
 Output:
-{"intent":"invalid_credentials","parameters":{"invalid_email":"test@gmail","message":"Invalid email format"}}
+{{"intent":"invalid_credentials","parameters":{{"invalid_email":"test@gmail","message":"Invalid email format"}}}}
 
 User: test@gmail.com 123
 Output:
-{"intent":"invalid_credentials","parameters":{"invalid_password":"123","message":"Password must be at least 6 characters"}}
+{{"intent":"invalid_credentials","parameters":{{"invalid_password":"123","message":"Password must be at least 6 characters"}}}}
 
 User: hi
 Output:
-{"intent":"invalid_credentials","parameters":{"message":"Email and password required"}}
+{{"intent":"invalid_credentials","parameters":{{"message":"Email and password required"}}}}
 """
 

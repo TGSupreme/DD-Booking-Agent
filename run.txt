@@ -1,5 +1,5 @@
 cd E:\Dynamic-Dreamz\DD-Booking-Web\backend
-npm start server
+npm run server
 
 .venv\Scripts\activate
 cd frontend

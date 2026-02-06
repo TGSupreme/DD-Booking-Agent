@@ -75,3 +75,9 @@ def set_state_findBus(state: dict, payload: dict) -> None:
         "to_city": payload["to"],
         "date": payload["traveldate"],
     })
+
+def set_token(session, token):
+    
+    session.update({
+        "access_token": token,
+    })

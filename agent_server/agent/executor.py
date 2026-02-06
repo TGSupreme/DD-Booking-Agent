@@ -28,5 +28,5 @@ def handle_message(message: str, session) -> str:
     else:
         add_to_history(session, "user", message)
         add_to_history(session, "assistant", reply)
-        print_history(session)
+        # print_history(session)
         return reply
