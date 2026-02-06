@@ -5,13 +5,14 @@ from agent.prompts.prompts import CONVERSATION_AGENT_PROMPT
 llm = get_llm()
 
 
-def conversation(user_message, session):
+def handle_conversation(user_message, session):
     
     prompt = [
     ("system", CONVERSATION_AGENT_PROMPT.format(history = session.get('history'),
                                                 state = session.get('state'))),
     ("user", user_message)
     ]
-    response = llm.invoke(prompt)
+    
+    response = llm.invoke(prompt).content
     
     return response
