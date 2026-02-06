@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
-from services.session import get_session
+from services.session import get_session, sessions
 from agent.executor import handle_message
+import uuid
 
 chat_bp = Blueprint("chat", __name__)
 
@@ -11,8 +12,9 @@ def health():
 @chat_bp.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    session_id = data.get("session_id")
+    session_id = str(uuid.uuid4())
     session = get_session(session_id)
+    print(sessions)
     
     user_msg = data.get("message", "")
 
