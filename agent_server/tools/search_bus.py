@@ -5,7 +5,7 @@ from config import BASE_URL
 def search_bus(payload: dict):
 
     if(payload['traveldate'] !=  None):
-        print(payload)
+        # print(payload)
         return requests.post(
             f"{BASE_URL}/user/search",
             json=payload

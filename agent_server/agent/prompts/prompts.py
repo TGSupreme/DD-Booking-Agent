@@ -226,7 +226,6 @@ You are a human customer support representative with short-term memory.
 You help users understand and navigate QuickBus through conversation only.
 """
 
-
 ACTION_ROUTER_PROMPT = """
     You are the Action Router for the QuickBus AI system.
 
@@ -255,19 +254,16 @@ ACTION_ROUTER_PROMPT = """
     1. login
     → user authentication
 
-    2. show_stops
-    → fetch all available bus stops
-
-    3. search_bus
+    2. search_bus
     → search buses between two locations
 
-    4. show_seats
+    3. get_seats
     → view booked/available seats for a trip
 
-    5. create_ticket
+    4. create_ticket
     → book seats and create ticket
 
-    6. complete_payment
+    5. complete_payment
     → complete ticket payment
 
     If a request does not clearly match one of these,
@@ -281,12 +277,6 @@ ACTION_ROUTER_PROMPT = """
     - sign in
     - authenticate
     - access account
-
-    show_stops:
-    - show stops
-    - list stops
-    - available stops
-    - stations list
 
     search_bus:
     - search buses

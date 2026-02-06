@@ -12,9 +12,17 @@ def default_state():
 
         # selection
         "selected_bus": None,
+        "selected_trip": None,
+        "selected_seat": [],
+        "base_price": None,
 
         # workflow flags
-        "booking_confirmed": False
+        "ticket_id": None,
+        "booking_confirmed": False,
+
+        #authorization
+        "is_logged_in" : None,
+        "access_token" : None
     }
 
 def get_session(session_id: str):
@@ -77,7 +85,8 @@ def set_state_findBus(state: dict, payload: dict) -> None:
     })
 
 def set_token(session, token):
-    
-    session.update({
+    state = session.get('state')
+    state.update({
+        "is_logged_in" : True,
         "access_token": token,
     })
