@@ -2,41 +2,24 @@ from agent.action_router import route_action
 from agent.intent_router import route_intent
 from services.session import add_to_history, print_history
 from agent.handler.handle_conversation import handle_conversation
+from agent.agent import create_search_agent
+from utils.print import debug_print_messages
 
-FALLBACK_MSG = "This service is not available yet."
+agent = create_search_agent()
 
 
-#this function is the entry point to our agentic system
-#it decide what query's type is and which agent will execute it  
-def handle_message(message: str, session) -> str:
+
+def handle_message(user_msg: str, session) -> str:
     reply = None
-    
 
-    intent = route_intent(message , session)
-    intent_name = intent["intent"]
+    result = agent.invoke({"messages": [{"role": "user", "content": user_msg}]},
+                          config={"configurable": {"session": session}})
 
-    print(f"Intent provided by Intent-Router : {intent.get('intent', 'UNKNOWN')}")
+    debug_print_messages(result["messages"])
+    reply = result["messages"][-1].content
 
-    
-    if (intent_name == "unsupported"):
-        reply = "This action is not supported yet."
-
-    elif intent_name == "unrelated":
-        reply = "I can only help with bus booking and ticket related requests."
-
-    elif intent_name == "conversational":
-        reply = handle_conversation(message , session)
-    
-    elif intent_name == "action":
-        reply = route_action(message, session)
+    add_to_history(session, "user", user_msg)
+    add_to_history(session, "assistant", reply)
 
     
-
-    if reply is None:
-        print ("intent doesnt match any case (intent_router failed)")
-        return "Your query is soo amazing our server exploded congrats......"
-    else:
-        add_to_history(session, "user", message)
-        add_to_history(session, "assistant", reply)
-        # print_history(session)
-        return reply
+    return reply

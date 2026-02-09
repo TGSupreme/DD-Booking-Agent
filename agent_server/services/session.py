@@ -78,11 +78,14 @@ def set_state_findBus(state: dict, payload: dict) -> None:
     if missing:
         raise ValueError(f"Missing fields: {missing}")
 
+    
     state.update({
-        "from_city": payload["from"],
-        "to_city": payload["to"],
-        "date": payload["traveldate"],
+    "from_city": payload["from"],
+    "to_city": payload["to"],
     })
+
+    if "traveldate" in payload:
+        state["date"] = payload["traveldate"]
 
 def set_token(session, token):
     state = session.get('state')
