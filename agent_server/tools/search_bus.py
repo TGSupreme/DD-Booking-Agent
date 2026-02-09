@@ -22,8 +22,13 @@ def search_bus_api_call(payload, session):
             json=payload
         ).json()
 
+    print(apiResponse)
     state = session["state"]
     set_state_findBus(state, payload)
+    if(apiResponse['state']):
+        session["state"]["tool_data"]["search_bus"] = {
+        "results": apiResponse["buses"]
+        }
 
     return apiResponse
 

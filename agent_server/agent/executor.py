@@ -1,25 +1,51 @@
 from agent.action_router import route_action
 from agent.intent_router import route_intent
-from services.session import add_to_history, print_history
+from services.session import add_to_history, print_history, update_state_from_llm, print_state
 from agent.handler.handle_conversation import handle_conversation
 from agent.agent import create_search_agent
 from utils.print import debug_print_messages
+from services.llm import get_llm
+import json 
 
 agent = create_search_agent()
 
 
 
 def handle_message(user_msg: str, session) -> str:
-    reply = None
 
-    result = agent.invoke({"messages": [{"role": "user", "content": user_msg}]},
-                          config={"configurable": {"session": session}})
+    history = session.get("history", [])
+    state = session.get("state", {})
+
+
+    # convert state → readable text for LLM
+    state_context = f"""
+    Current session state (source of truth):
+    {json.dumps(state, indent=2)}
+
+    Use this state to decide what tool to call or what to ask next.
+    Do NOT invent values.
+    """
+
+    messages = [
+        {"role": "system", "content": state_context},
+        *history,  # past messages
+        {"role": "user", "content": user_msg},
+    ]
+
+    result = agent.invoke(
+        {"messages": messages},
+        config={"configurable": {"session": session}}  # for tools only
+    )
 
     debug_print_messages(result["messages"])
-    reply = result["messages"][-1].content
 
+    reply = result["messages"][-1].content
     add_to_history(session, "user", user_msg)
     add_to_history(session, "assistant", reply)
 
-    
+    # 3️⃣ update soft state from conversation
+    update_state_from_llm(session, get_llm())
+    print_state(state)
+
     return reply
+

@@ -1,17 +1,8 @@
-# from .base import post
-
-
-# def get_all_seats(payload, token):
-#     headers = {
-#         "Authorization": f"Bearer {token}"
-#     }
-
-#     return post("/ticket/seat/get", payload, headers=headers)
-
 from typing import List
-from langchain.tools import StructuredTool
+from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from .base import post
+from langchain_core.runnables import RunnableConfig
 
 
 # ---------- Input schema ----------
@@ -20,7 +11,6 @@ class GetAllSeatsInput(BaseModel):
     from_city: str = Field(..., description="Source city name")
     to_city: str = Field(..., description="Destination city name")
     traveldate: str = Field(..., description="Travel date in YYYY-MM-DD format")
-    token: str = Field(..., description="JWT authentication token")
 
 
 # ---------- Core function ----------
@@ -29,9 +19,9 @@ def _get_all_seats(
     from_city: str,
     to_city: str,
     traveldate: str,
-    token: str,
+    config: RunnableConfig,
 ) -> List[int]:
-
+    token = config["configurable"]["session"]['access_token']
     payload = {
         "tripId": tripId,
         "from": from_city,

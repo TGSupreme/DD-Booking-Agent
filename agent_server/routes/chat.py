@@ -12,7 +12,7 @@ def health():
 @chat_bp.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    session_id = str(uuid.uuid4())
+    session_id = data.get("session_id")
     session = get_session(session_id)
     # print(sessions)
     

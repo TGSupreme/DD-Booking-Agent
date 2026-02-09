@@ -645,4 +645,20 @@ Rules:
 - Do NOT explain anything
 """
 
+STATE_EXTRACT_PROMPT = """
+Extract structured booking information from the conversation.
+
+Return ONLY JSON.
+
+Possible fields:
+- from_city
+- to_city
+- date
+- passengers
+
+If not mentioned, return null.
+
+Conversation:
+{history}
+"""
 

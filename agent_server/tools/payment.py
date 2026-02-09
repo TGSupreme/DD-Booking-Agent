@@ -3,7 +3,7 @@
 # def complete_ticket_payment(ticket_id, payload):
 #     return put(f"/ticket/update/payment/{ticket_id}", payload)
 
-from langchain.tools import StructuredTool
+from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from typing import Dict, Any
 from .base import put
