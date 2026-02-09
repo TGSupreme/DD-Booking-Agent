@@ -1,3 +1,10 @@
+from tools.login import login
+
+access_token = (login({
+    "email": "user@gmail.com",
+    "password": "123456"
+}))['token']
+
 sessions = {}
 MAX_TURNS = 10
 
@@ -21,8 +28,8 @@ def default_state():
         "booking_confirmed": False,
 
         #authorization
-        "is_logged_in" : None,
-        "access_token" : None
+        "is_logged_in" : True,
+        "access_token" : access_token
     }
 
 def get_session(session_id: str):
@@ -30,7 +37,7 @@ def get_session(session_id: str):
         sessions[session_id] = {
             "history": [],
             "state": default_state(),
-            "access_token": None
+            "access_token": access_token
         }
     return sessions[session_id]
 
