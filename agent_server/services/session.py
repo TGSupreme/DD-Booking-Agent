@@ -32,7 +32,6 @@ def default_state():
         "passengers": 1,
 
         # selection
-        "selected_bus": None,
         "selected_trip": None,
         "selected_seat": [],
         "base_price": None,
@@ -46,7 +45,7 @@ def default_state():
 
         "tool_data": {
             "search_bus": None,
-            "seat_map": None,
+            "booked_seat": None,
             "price_breakdown": None
         }
     }

@@ -33,8 +33,7 @@ if prompt := st.chat_input("Type your message"):
                     json={
                         "user_id": "user1",
                         "message": prompt
-                    },
-                    timeout=60
+                    }
                 )
 
                 # raise exception for 4xx/5xx

@@ -23,7 +23,6 @@ def handle_message(user_msg: str, session) -> str:
     Use this state to decide what tool to call or what to ask next.
     Do NOT invent values.
     """
-    print(state)
     messages = [
         {"role": "system", "content": state_context},
         *history,  # past messages
@@ -31,18 +30,17 @@ def handle_message(user_msg: str, session) -> str:
     ]
 
     
-    try:
-        result = agent.invoke(
-            {"messages": messages},
-            config={"configurable": {"session": session}})
-    except BadRequestError:
-        print(f"ERROR----> : {BadRequestError}")
-        print("(BadRequestError occured) Retrying...")
-        result = agent.invoke(
+    # try:
+    #     result = agent.invoke(
+    #         {"messages": messages},
+    #         config={"configurable": {"session": session}})
+    # except BadRequestError:
+    #     print(f"ERROR----> : {BadRequestError}")
+    #     print("(BadRequestError occured) Retrying...")
+    result = agent.invoke(
         {"messages": messages},
         config={"configurable": {"session": session}})
 
-    print(f"result of agent : {result}")
     debug_print_messages(result["messages"])
 
     reply = result["messages"][-1].content

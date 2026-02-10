@@ -3,7 +3,7 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from .base import post
 from langchain_core.runnables import RunnableConfig
-
+import json
 
 # ---------- Input schema ----------
 class GetAllSeatsInput(BaseModel):
@@ -21,13 +21,24 @@ def _get_all_seats(
     traveldate: str,
     config: RunnableConfig,
 ) -> List[int]:
-    token = config["configurable"]["session"]['access_token']
+    
+    print(f"Calling seats Tool")
+    
+    session = config["configurable"]["session"]
+    token = session['access_token']
+    state = session['state']
+    state['selected_trip'] = tripId
+
+
+    print(f"state in seats: {state}")
     payload = {
         "tripId": tripId,
         "from": from_city,
         "to": to_city,
         "traveldate": traveldate,
     }
+
+    print(f"payload by llm : {payload}")
 
     headers = {
         "Authorization": f"Bearer {token}"
@@ -38,7 +49,8 @@ def _get_all_seats(
     if not res.get("success"):
         raise RuntimeError(res.get("message", "Seat fetch failed"))
 
-    return res.get("bookedseat", [])
+    state["booked_seats"] = res.get("bookedseat", [])
+    return  json.dumps(res.get("bookedseat", []))
 
 
 # ---------- Tool ----------
@@ -46,9 +58,12 @@ get_all_seats_tool = StructuredTool.from_function(
     func=_get_all_seats,
     name="get_all_seats",
     description=(
-        "Fetch all already booked seat numbers for a bus trip. "
-        "Call this before seat selection. "
-        "Returns list of booked seat numbers."
-    ),
+    "Fetch already booked seats for a selected trip. "
+    "Call this ONLY once immediately after the user selects a bus. "
+    "DO NOT call this after the user has provided seat numbers. "
+    "If seat numbers are provided, you MUST use create_ticket instead. "
+    "Returns a JSON string list of booked seat numbers. "
+    "An empty list means all seats are available."
+    ),  
     args_schema=GetAllSeatsInput,
 )

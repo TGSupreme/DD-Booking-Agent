@@ -4,10 +4,12 @@ from langchain_core.tools import tool
 from langchain_core.runnables import RunnableConfig
 from services.session import set_state_findBus 
 from tools.tool_descriptions import SEARCH_BUS_DOCSTRING
+import json
 
 def search_bus_api_call(payload, session):
     apiResponse = None
     print(f"payload by llm : {payload}")
+    print(f"Calling Search_bus Tool")
 
     if(payload['traveldate'] !=  None):
         apiResponse =  requests.post(
@@ -22,15 +24,15 @@ def search_bus_api_call(payload, session):
             json=payload
         ).json()
 
-    # print(apiResponse)
+    print(apiResponse.get('success'))
     state = session["state"]
     set_state_findBus(state, payload)
-    if(apiResponse['buses']):
+    if(apiResponse.get('success')):
         session["state"]["tool_data"]["search_bus"] = {
         "results": apiResponse["buses"]
         }
 
-    return apiResponse
+    return json.dumps(apiResponse)
 
 @tool (description = SEARCH_BUS_DOCSTRING)
 def search_bus(from_city: str, to_city: str, date: str | None, config: RunnableConfig):

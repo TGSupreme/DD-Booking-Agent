@@ -5,8 +5,15 @@ SEARCH_BUS_DOCSTRING =  """
     - Fetch real bus availability between two cities.
 
     Parameters:
-    - from_city (str): Source city name
-    - to_city (str): Destination city name
+    Parameters:
+    - from_city (str):
+        • Source city name
+        • MUST follow Pascal naming convention (first letter capitalized)
+        • Example: "Delhi", "Bangalore", "NewYork"
+    - to_city (str):
+        • Destination city name
+        • MUST follow Pascal naming convention (first letter capitalized)
+        • Example: "Mumbai", "Chennai"
     - date (str | None):
         • Format: YYYY-MM-DD (ISO 8601), e.g., 2026-01-24
         • If provided → returns buses for that specific date only
