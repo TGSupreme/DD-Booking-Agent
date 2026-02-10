@@ -38,7 +38,7 @@ def _get_all_seats(
         "traveldate": traveldate,
     }
 
-    print(f"payload by llm : {payload}")
+    print(f"payload by llm (seats): {payload}")
 
     headers = {
         "Authorization": f"Bearer {token}"

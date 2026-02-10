@@ -7,7 +7,8 @@ from typing import List
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from .base import post
-
+from langchain_core.runnables import RunnableConfig
+import json
 
 # ---------- Passenger schema ----------
 class Passenger(BaseModel):
@@ -23,7 +24,7 @@ class CreateTicketInput(BaseModel):
     to_city: str = Field(..., description="Destination city name")
     price: float = Field(..., description="Total ticket price")
     seats: List[int] = Field(..., description="List of seat numbers selected")
-    passengers: List[Passenger] = Field(..., description="Passenger details list")
+    passengers: List[Passenger] = Field(..., description="Passenger details. Count MUST equal number of seats exactly.")
     ticketdate: str = Field(..., description="Travel date in YYYY-MM-DD format")
 
 
@@ -36,7 +37,17 @@ def _create_ticket(
     seats: List[int],
     passengers: List[Passenger],
     ticketdate: str,
+    config: RunnableConfig,
 ):
+
+    print(f"Calling create ticket Tool")
+    token = config["configurable"]["session"]['access_token']
+
+    if len(seats) != len(passengers):
+        return (
+            f"Seats count ({len(seats)}) must equal passengers count ({len(passengers)}). "
+            "Collect all passenger details first."
+        )
 
     payload = {
         "tripId": tripId,
@@ -47,8 +58,13 @@ def _create_ticket(
         "passengers": [p.dict() for p in passengers],
         "ticketdate": ticketdate,
     }
+    print(f"payload by llm : {payload}")
 
-    res = post("/ticket/", payload)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+    res = post("/ticket/", payload, headers=headers)
 
     if not res.get("success"):
         raise RuntimeError(res.get("message", "Ticket creation failed"))
@@ -61,9 +77,12 @@ create_ticket_tool = StructuredTool.from_function(
     func=_create_ticket,
     name="create_ticket",
     description=(
-        "Create a new ticket booking for a selected trip. "
-        "Requires trip info, seat numbers, passenger details, and price. "
-        "Returns the booked ticket object including PNR."
+    "Create a ticket booking for the selected trip. "
+    "Call this when the user provides seat numbers to book. "
+    "Use this AFTER seats are chosen. "
+    "DO NOT call get_all_seats again once seats are selected. "
+    "Requires seats list and passenger details. "
+    "Returns the booked ticket confirmation as JSON string."
     ),
     args_schema=CreateTicketInput,
 )

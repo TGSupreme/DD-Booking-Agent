@@ -654,8 +654,8 @@ Possible fields:
 - from_city
 - to_city
 - travel_date
-- passengers
-
+- passengers (count)
+- selected_seat [],
 If not mentioned, return null.
 
 Conversation:

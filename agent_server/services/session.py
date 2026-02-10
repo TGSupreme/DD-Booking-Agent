@@ -103,8 +103,13 @@ def update_state_from_llm(session, llm):
 
     extracted = extract_state_from_text(llm, history_text)
 
+    if not extracted:
+        print("No state extracted from LLM")
+        return
+
     print(f"Extracted Params by LLM : {extracted}")
     state = session["state"]
+    print(state)
 
     for k, v in extracted.items():
         if v is not None:
