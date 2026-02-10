@@ -653,7 +653,7 @@ Return ONLY JSON.
 Possible fields:
 - from_city
 - to_city
-- date
+- travel_date
 - passengers
 
 If not mentioned, return null.

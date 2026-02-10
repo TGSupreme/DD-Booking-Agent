@@ -1,6 +1,7 @@
 from tools.login import login
 from agent.prompts.prompts import STATE_EXTRACT_PROMPT
 import json
+from datetime import date
 
 access_token = (login({
     "email": "user@gmail.com",
@@ -22,10 +23,12 @@ def get_session(session_id: str):
 
 def default_state():
     return {
+        "today's_date" : str(date.today()),
+        "today_day": date.today().strftime("%A"), 
         # trip info
         "from_city": None,
         "to_city": None,
-        "date": None,
+        "travel_date": None,
         "passengers": 1,
 
         # selection
@@ -40,7 +43,6 @@ def default_state():
 
         #authorization
         "is_logged_in" : True,
-        "access_token" : access_token,
 
         "tool_data": {
             "search_bus": None,
