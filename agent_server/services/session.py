@@ -86,7 +86,7 @@ def extract_state_from_text(llm, history):
 
     prompt = STATE_EXTRACT_PROMPT.format(history=history)
 
-    resp = llm.invoke(prompt).content
+    resp = llm.invoke(prompt).content.strip()
 
     try:
         return json.loads(resp)
