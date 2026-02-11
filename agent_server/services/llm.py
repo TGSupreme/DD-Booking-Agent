@@ -4,8 +4,19 @@ from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 from langchain_google_genai import ChatGoogleGenerativeAI
+from services.key_manager import key_manager
 
 load_dotenv()
+
+def get_llm():
+    return ChatGoogleGenerativeAI(
+        model="gemini-2.5-flash",
+        temperature=0,          # deterministic (important for tools)
+        max_output_tokens=512,  # Gemini uses this instead of max_tokens
+        google_api_key=key_manager.get_key() 
+    )
+
+
 
 def get_llm_summary():
     # low-level endpoint (provider connection)
@@ -22,6 +33,7 @@ def get_llm_summary():
 
     return chat_model
 
+
 # def get_llm():
 #     return ChatGroq(
 #         model="llama-3.1-8b-instant",
@@ -29,11 +41,3 @@ def get_llm_summary():
 #         max_tokens=512,
 #         api_key=os.getenv("GROQ_API_KEY")
 #     )
-
-def get_llm():
-    return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        temperature=0,          # deterministic (important for tools)
-        max_output_tokens=512,  # Gemini uses this instead of max_tokens
-        google_api_key=os.getenv("GOOGLE_API_KEY")
-    )
