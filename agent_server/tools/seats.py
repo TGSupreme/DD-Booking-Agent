@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 from .base import post
 from langchain_core.runnables import RunnableConfig
 import json
+import time
 
 # ---------- Input schema ----------
 class GetAllSeatsInput(BaseModel):
@@ -22,8 +23,13 @@ def _get_all_seats(
     config: RunnableConfig,
 ) -> List[int]:
     
+    tool_start = time.perf_counter()
+    print("[get_all_seats] start")
+
     print(f"Calling seats Tool")
     
+    t0 = time.perf_counter()
+
     session = config["configurable"]["session"]
     token = session['access_token']
     state = session['state']
@@ -42,13 +48,28 @@ def _get_all_seats(
     headers = {
         "Authorization": f"Bearer {token}"
     }
+    t1 = time.perf_counter()
+    print(f"[get_all_seats] prep: {t1 - t0:.3f}s")
+
+    api_start = time.perf_counter()
 
     res = post("/ticket/seat/get", payload, headers=headers)
 
+    api_end = time.perf_counter()
+    print(f"[get_all_seats] backend API: {api_end - api_start:.3f}s")
+
+    t2 = time.perf_counter()
     if not res.get("success"):
         raise RuntimeError(res.get("message", "Seat fetch failed"))
 
     state["booked_seats"] = res.get("bookedseat", [])
+
+    t3 = time.perf_counter()
+    print(f"[get_all_seats] post-process: {t3 - t2:.3f}s")
+
+    # -------------------------
+    print(f"[get_all_seats] total: {t3 - tool_start:.3f}s")
+    
     return  json.dumps(res.get("bookedseat", []))
 
 

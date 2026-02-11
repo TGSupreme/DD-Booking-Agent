@@ -1,10 +1,11 @@
 from services.session import add_to_history, print_history, update_state_from_llm
 from agent.agent import create_search_agent
 from utils.print import debug_print_messages
-from services.llm import get_llm
+from services.llm import get_llm_summary
 import json 
 from groq import BadRequestError
 from langchain_core.messages import AIMessage
+import time
 
 agent = create_search_agent()
 
@@ -15,7 +16,7 @@ def handle_message(user_msg: str, session) -> str:
     history = session.get("history", [])
     state = session.get("state", {})
 
-
+    
     # convert state → readable text for LLM
     state_context = f"""
     Current session state (source of truth):
@@ -35,22 +36,32 @@ def handle_message(user_msg: str, session) -> str:
         {"messages": messages},
         config={"configurable": {"session": session}})
 
-    debug_print_messages(result["messages"])
 
+    # debug_print_messages(result["messages"])
+    # print(result)
     reply = ""
 
-    # The LAST message from agent is the final answer
     last_message = result["messages"][-1]
 
     if isinstance(last_message, AIMessage):
-        reply = last_message.content or ""
+        content = last_message.content
+
+        # Gemini returns list of parts
+        if isinstance(content, list):
+            reply = "".join(
+                part.get("text", "")
+                for part in content
+                if part.get("type") == "text"
+            )
+        else:
+            reply = content or ""
     
     add_to_history(session, "user", user_msg)
     add_to_history(session, "assistant", reply)
 
-    #update states from conversation history
-    update_state_from_llm(session, get_llm())
-    # print_state(state)
+
+    update_state_from_llm(session, get_llm_summary())
+
 
     return reply
 

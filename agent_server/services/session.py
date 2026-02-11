@@ -46,7 +46,7 @@ def default_state():
         "tool_data": {
             "search_bus": None,
             "booked_seat": None,
-            "price_breakdown": None
+            "create_ticket_response": None
         }
     }
 

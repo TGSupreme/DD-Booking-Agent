@@ -42,12 +42,10 @@ def _create_ticket(
 
     print(f"Calling create ticket Tool")
     token = config["configurable"]["session"]['access_token']
+    state = config["configurable"]["session"]['state']
 
     if len(seats) != len(passengers):
-        return (
-            f"Seats count ({len(seats)}) must equal passengers count ({len(passengers)}). "
-            "Collect all passenger details first."
-        )
+        raise ValueError("PASSENGER_COUNT_MISMATCH")
 
     payload = {
         "tripId": tripId,
@@ -66,6 +64,8 @@ def _create_ticket(
     }
     res = post("/ticket/", payload, headers=headers)
 
+    state["create_ticket_response"] = res
+
     if not res.get("success"):
         raise RuntimeError(res.get("message", "Ticket creation failed"))
 
@@ -77,15 +77,11 @@ create_ticket_tool = StructuredTool.from_function(
     func=_create_ticket,
     name="create_ticket",
     description=(
-        "Create a ticket booking for the selected trip. "
-        "Call this ONLY AFTER seats have been selected and passenger details have been collected. "
-        "Do NOT call get_all_seats again once seats are chosen. "
-        "You MUST collect passenger details for EVERY seat. "
-        "The number of passengers MUST EXACTLY match the number of seats selected. "
-        "If seats = 2, the passengers list MUST contain exactly 2 passenger objects. "
-        "Never drop, merge, or auto-fill passengers. "
-        "Requires: seats list and passenger details. "
-        "Returns the booked ticket confirmation as a JSON string."
-    ),
+    "Creates a ticket. "
+    "Return ONLY valid JSON arguments. "
+    "Do NOT add explanations or extra fields. "
+    "Arguments must exactly match schema. "
+    "passengers length MUST equal seats length."
+),
     args_schema=CreateTicketInput,
 )
