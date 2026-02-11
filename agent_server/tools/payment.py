@@ -7,7 +7,8 @@ from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
 from typing import Dict, Any
 from .base import put
-
+from langchain_core.runnables import RunnableConfig
+import json
 
 # ---------- Input schema ----------
 class CompleteTicketPaymentInput(BaseModel):
@@ -19,18 +20,29 @@ class CompleteTicketPaymentInput(BaseModel):
 def _complete_ticket_payment(
     ticketId: str,
     price: float,
+    config: RunnableConfig,
 ) -> Dict[str, Any]:
+
+    session = config["configurable"]["session"]
+    token = session['access_token']
 
     payload = {
         "price": price
     }
+    print(f"Calling seats Tool")
+    print(f"payload by llm (Payment): {payload}")
 
-    res = put(f"/ticket/update/payment/{ticketId}", payload)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    res = put(f"/ticket/update/payment/{ticketId}", payload, headers=headers)
 
     if not res.get("success"):
         raise RuntimeError(res.get("message", "Payment update failed"))
 
-    return res.get("updatedTicket")
+    return json.dumps(res.get("updatedTicket"))
 
 
 # ---------- Tool ----------

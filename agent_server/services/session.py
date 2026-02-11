@@ -109,7 +109,6 @@ def update_state_from_llm(session, llm):
 
     print(f"Extracted Params by LLM : {extracted}")
     state = session["state"]
-    print(state)
 
     for k, v in extracted.items():
         if v is not None:

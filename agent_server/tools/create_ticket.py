@@ -69,7 +69,7 @@ def _create_ticket(
     if not res.get("success"):
         raise RuntimeError(res.get("message", "Ticket creation failed"))
 
-    return res.get("ticket")
+    return json.dumps(res.get("ticket"))
     
 
 # ---------- Tool ----------
@@ -77,12 +77,15 @@ create_ticket_tool = StructuredTool.from_function(
     func=_create_ticket,
     name="create_ticket",
     description=(
-    "Create a ticket booking for the selected trip. "
-    "Call this when the user provides seat numbers to book. "
-    "Use this AFTER seats are chosen. "
-    "DO NOT call get_all_seats again once seats are selected. "
-    "Requires seats list and passenger details. "
-    "Returns the booked ticket confirmation as JSON string."
+        "Create a ticket booking for the selected trip. "
+        "Call this ONLY AFTER seats have been selected and passenger details have been collected. "
+        "Do NOT call get_all_seats again once seats are chosen. "
+        "You MUST collect passenger details for EVERY seat. "
+        "The number of passengers MUST EXACTLY match the number of seats selected. "
+        "If seats = 2, the passengers list MUST contain exactly 2 passenger objects. "
+        "Never drop, merge, or auto-fill passengers. "
+        "Requires: seats list and passenger details. "
+        "Returns the booked ticket confirmation as a JSON string."
     ),
     args_schema=CreateTicketInput,
 )

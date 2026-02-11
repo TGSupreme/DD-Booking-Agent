@@ -19,11 +19,7 @@ def create_search_agent():
     ]
 
     agent = create_agent(
-        model=llm.bind_tools(
-            tools,
-            tool_choice="auto",
-            strict = True
-        ),
+        model=llm,
         tools=tools,
 
         system_prompt = """

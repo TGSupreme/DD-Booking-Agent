@@ -30,7 +30,6 @@ def _get_all_seats(
     state['selected_trip'] = tripId
 
 
-    print(f"state in seats: {state}")
     payload = {
         "tripId": tripId,
         "from": from_city,

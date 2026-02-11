@@ -4,6 +4,7 @@ from utils.print import debug_print_messages
 from services.llm import get_llm
 import json 
 from groq import BadRequestError
+from langchain_core.messages import AIMessage
 
 agent = create_search_agent()
 
@@ -29,21 +30,21 @@ def handle_message(user_msg: str, session) -> str:
         {"role": "user", "content": user_msg},
     ]
 
-    
-    # try:
-    #     result = agent.invoke(
-    #         {"messages": messages},
-    #         config={"configurable": {"session": session}})
-    # except BadRequestError:
-    #     print(f"ERROR----> : {BadRequestError}")
-    #     print("(BadRequestError occured) Retrying...")
+
     result = agent.invoke(
         {"messages": messages},
         config={"configurable": {"session": session}})
 
     debug_print_messages(result["messages"])
 
-    reply = result["messages"][-1].content
+    reply = ""
+
+    # The LAST message from agent is the final answer
+    last_message = result["messages"][-1]
+
+    if isinstance(last_message, AIMessage):
+        reply = last_message.content or ""
+    
     add_to_history(session, "user", user_msg)
     add_to_history(session, "assistant", reply)
 
