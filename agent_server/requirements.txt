@@ -8,3 +8,6 @@ huggingface_hub
 python-dotenv
 requests
 httpx
+streamlit
+email-validator
+langchain-groq
