@@ -1,8 +1,3 @@
-# from .base import post
-
-# def create_ticket(payload):
-#     return post("/ticket/", payload)
-
 from typing import List
 from langchain_core.tools import StructuredTool
 from pydantic import BaseModel, Field
