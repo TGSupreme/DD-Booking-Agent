@@ -14,9 +14,11 @@ def chat():
     data = request.json
     session_id = data.get("session_id")
     session = get_session(session_id)
-    # print(sessions)
-    
+    session["access_token"] = data.get("access_token")
+    # print(sessions)    
     user_msg = data.get("message", "")
+    
+    print(session["access_token"])
 
     reply = handle_message(user_msg, session)
     

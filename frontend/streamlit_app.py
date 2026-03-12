@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import uuid
 
 AGENT_URL = "http://localhost:8000/chat"
 
@@ -9,6 +10,9 @@ st.title("🚌 QuickBus AI Agent")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())
+    
 # Display chat history
 for msg in st.session_state.messages:
     st.chat_message(msg["role"]).write(msg["content"])
@@ -31,7 +35,7 @@ if prompt := st.chat_input("Type your message"):
                 res = requests.post(
                     AGENT_URL,
                     json={
-                        "user_id": "user1",
+                        "session_id": st.session_state.session_id,
                         "message": prompt
                     }
                 )

@@ -24,7 +24,7 @@ def _complete_ticket_payment(
     payload = {
         "price": price
     }
-    print(f"Calling seats Tool")
+    print(f"Calling payment Tool")
     print(f"payload by llm (Payment): {payload}")
 
 

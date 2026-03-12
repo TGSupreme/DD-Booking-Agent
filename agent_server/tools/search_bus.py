@@ -46,3 +46,4 @@ def search_bus(from_city: str, to_city: str, date: str | None, config: RunnableC
     }
 
     return search_bus_api_call(payload , session)
+

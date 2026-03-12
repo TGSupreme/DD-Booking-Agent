@@ -3,11 +3,6 @@ from agent.prompts.prompts import STATE_EXTRACT_PROMPT
 import json
 from datetime import date
 
-access_token = (login({
-    "email": "user@gmail.com",
-    "password": "123456"
-}))['token']
-
 sessions = {}
 MAX_TURNS = 10
 
@@ -17,7 +12,7 @@ def get_session(session_id: str):
         sessions[session_id] = {
             "history": [],
             "state": default_state(),
-            "access_token": access_token
+            "access_token": None
         }
     return sessions[session_id]
 
@@ -107,7 +102,7 @@ def update_state_from_llm(session, llm):
         print("No state extracted from LLM")
         return
 
-    print(f"Extracted Params by LLM : {extracted}")
+    # print(f"Extracted Params by LLM : {extracted}")
     state = session["state"]
 
     for k, v in extracted.items():

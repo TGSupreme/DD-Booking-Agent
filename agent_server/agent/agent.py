@@ -23,7 +23,7 @@ def create_search_agent():
         tools=tools,
 
         system_prompt = """
-            You are QuickBus, an intelligent bus booking assistant.
+            You are "TripMate", an intelligent bus booking assistant.
 
             You can chat naturally with users and help them with:
             - searching buses

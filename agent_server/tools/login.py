@@ -5,7 +5,7 @@ def validate_credentials(payload):
     email = (payload.get('email'))
     password = (payload.get('password'))
 
-    if ( is_valid_email(email) == False):
+    if ( is_valid_email(email) != True):
         return f"{email} is not a valid email please try again"
         
     if ( len(password) < 6):
