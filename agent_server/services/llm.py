@@ -10,7 +10,7 @@ load_dotenv()
 
 def get_llm():
     return ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+        model="gemini-2.0-flash",
         temperature=0,          # deterministic (important for tools)
         max_output_tokens=512,  # Gemini uses this instead of max_tokens
         google_api_key=key_manager.get_key() 

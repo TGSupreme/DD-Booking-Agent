@@ -2,22 +2,21 @@ from services.session import add_to_history, print_history, update_state_from_ll
 from agent.agent import create_search_agent
 from utils.print import debug_print_messages
 from services.llm import get_llm_summary
+from services.key_manager import key_manager
 import json 
 from groq import BadRequestError
 from langchain_core.messages import AIMessage
 import time
+from google.api_core.exceptions import ResourceExhausted, PermissionDenied
 
-agent = create_search_agent()
-
+# Remove global agent instantiation to ensure fresh LLM per request or retry
+# agent = create_search_agent()
 
 
 def handle_message(user_msg: str, session) -> str:
-
     history = session.get("history", [])
     state = session.get("state", {})
 
-    
-    # convert state → readable text for LLM
     state_context = f"""
     Current session state (source of truth):
     {json.dumps(state, indent=2)}
@@ -27,20 +26,39 @@ def handle_message(user_msg: str, session) -> str:
     """
     messages = [
         {"role": "system", "content": state_context},
-        *history,  # past messages
+        *history,
         {"role": "user", "content": user_msg},
     ]
 
+    max_retries = len(key_manager.keys)
+    attempts = 0
+    result = None
 
-    result = agent.invoke(
-        {"messages": messages},
-        config={"configurable": {"session": session}})
+    while attempts < max_retries:
+        try:
+            # Create a fresh agent which will use the current key from key_manager
+            agent = create_search_agent()
+            result = agent.invoke(
+                {"messages": messages},
+                config={"configurable": {"session": session}}
+            )
+            break # Success!
+        except (ResourceExhausted, PermissionDenied) as e:
+            attempts += 1
+            if attempts >= max_retries:
+                return "I'm sorry, but I've reached my usage limit for now. Please try again later."
+            
+            print(f"Key {key_manager.get_key()[-5:]} exhausted or invalid. Switching to next key... (Attempt {attempts})")
+            key_manager.switch_key()
+            # Loop will continue and try with the next key
+        except Exception as e:
+            print(f"An unexpected error occurred: {str(e)}")
+            return "I encountered an error while processing your request. Please try again."
 
+    if not result:
+        return "I'm having trouble connecting right now. Please try again in a moment."
 
-    # debug_print_messages(result["messages"])
-    # print(result)
     reply = ""
-
     last_message = result["messages"][-1]
 
     if isinstance(last_message, AIMessage):
