@@ -7,7 +7,6 @@ import json
 from groq import BadRequestError
 from langchain_core.messages import AIMessage
 import time
-from google.api_core.exceptions import ResourceExhausted, PermissionDenied
 
 # Remove global agent instantiation to ensure fresh LLM per request or retry
 # agent = create_search_agent()
@@ -43,17 +42,23 @@ def handle_message(user_msg: str, session) -> str:
                 config={"configurable": {"session": session}}
             )
             break # Success!
-        except (ResourceExhausted, PermissionDenied) as e:
-            attempts += 1
-            if attempts >= max_retries:
-                return "I'm sorry, but I've reached my usage limit for now. Please try again later."
-            
-            print(f"Key {key_manager.get_key()[-5:]} exhausted or invalid. Switching to next key... (Attempt {attempts})")
-            key_manager.switch_key()
-            # Loop will continue and try with the next key
         except Exception as e:
-            print(f"An unexpected error occurred: {str(e)}")
-            return "I encountered an error while processing your request. Please try again."
+            # Catch ResourceExhausted (rate limit) or PermissionDenied (bad key) by name
+            error_type = type(e).__name__
+            error_msg = str(e)
+            
+            if error_type in ["ResourceExhausted", "PermissionDenied"] or "429" in error_msg:
+                attempts += 1
+                if attempts >= max_retries:
+                    return "I'm sorry, but I've reached my usage limit for now. Please try again later."
+                
+                print(f"Key {key_manager.get_key()[-5:]} exhausted or invalid ({error_type}). Switching... (Attempt {attempts})")
+                key_manager.switch_key()
+                continue # Retry the loop with the next key
+            else:
+                # If it's some other error, don't retry as it's likely a code or logic issue
+                print(f"An unexpected error occurred: {error_type} - {error_msg}")
+                return "I encountered an error while processing your request. Please try again."
 
     if not result:
         return "I'm having trouble connecting right now. Please try again in a moment."
