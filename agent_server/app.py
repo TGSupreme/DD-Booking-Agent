@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from flask import Flask
+from flask_cors import CORS
 from routes.chat import chat_bp
 
 load_dotenv()
@@ -8,6 +9,7 @@ load_dotenv()
 PORT = int(os.getenv("FLASK_PORT", 8000))
 
 app = Flask(__name__)
+CORS(app)
 app.register_blueprint(chat_bp)
 
 if __name__ == "__main__":
