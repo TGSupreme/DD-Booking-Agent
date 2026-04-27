@@ -12,14 +12,14 @@ def health():
 @chat_bp.route("/chat", methods=["POST"])
 def chat():
     data = request.json
-    print(data)
+    # print(data)
     session_id = data.get("session_id")
     session = get_session(session_id)
     session["access_token"] = data.get("access_token")
     # print(sessions)    
     user_msg = data.get("message", "")
     
-    print(session["access_token"])
+    # print(session["access_token"])
 
     reply = handle_message(user_msg, session)
     

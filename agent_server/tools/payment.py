@@ -45,7 +45,7 @@ complete_ticket_payment_tool = StructuredTool.from_function(
     func=_complete_ticket_payment,
     name="complete_ticket_payment",
     description=(
-        "Mark a ticket payment as completed after successful payment. "
+        "Mark a ticket payment as com pleted after successful payment. "
         "Use ONLY after ticket is created and payment succeeds. "
         "Returns the updated ticket object with paymentstatus=completed."
     ),

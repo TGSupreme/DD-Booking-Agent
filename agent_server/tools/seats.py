@@ -48,6 +48,7 @@ def _get_all_seats(
     headers = {
         "Authorization": f"Bearer {token}"
     }
+    print(f"Headers : {headers}")
     t1 = time.perf_counter()
     print(f"[get_all_seats] prep: {t1 - t0:.3f}s")
 
@@ -70,6 +71,7 @@ def _get_all_seats(
     # -------------------------
     print(f"[get_all_seats] total: {t3 - tool_start:.3f}s")
     
+    print(res)
     return  json.dumps(res.get("bookedseat", []))
 
 
